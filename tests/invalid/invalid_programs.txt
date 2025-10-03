@@ -1,0 +1,58 @@
+// =======================================================
+// A collection of invalid programs to test error handling.
+// Test one at a time by deleting the others.
+// =======================================================
+
+
+// --- LEXICAL ERRORS ---
+
+// Error: Invalid number with a leading zero
+main { var {x} x = 07 }
+
+
+// Error: Invalid string with non-alphanumeric characters
+main { var {} print "hello!" }
+
+
+// Error: Unterminated string
+main { var {} print "hello }
+
+
+// Error: String too long (more than 15 characters)
+main { var {} print "1234567890123456" }
+
+
+// Error: Invalid identifier (contains uppercase)
+main { var { myVar } myVar = 1 }
+
+
+// --- SYNTACTIC ERRORS ---
+
+// Error: Missing closing brace in main
+main { var {} halt
+
+
+// Error: Semicolon is required between instructions
+main { var {} halt print 1 }
+
+
+// Error: Empty algorithm block is not allowed
+main { var {} }
+
+
+// Error: Too many parameters (max 3)
+proc {
+    too_many(p1 p2 p3 p4) {
+        local {}
+        halt
+    }
+}
+main { var{} halt }
+
+
+// Error: 'else' without a matching 'if'
+main { var {} else { halt } }
+
+
+// Error: Mismatched parentheses in an expression
+main { var {x} x = (5 plus 10 }

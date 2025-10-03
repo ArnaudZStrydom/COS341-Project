@@ -1,264 +1,182 @@
+#include "spl_lexer.h"
 #include <iostream>
-#include <string>
-#include <vector>
 #include <cctype>
-#include <unordered_map>
 #include <stdexcept>
-#include <fstream>
-#include <sstream>
 
-enum class TokenType {
-    GLOB, PROC, FUNC, MAIN, LOCAL, VAR, RETURN, HALT, PRINT,
-    WHILE, DO, UNTIL, IF, ELSE, NEG, NOT, EQ, OR, AND,
-    PLUS, MINUS, MULT, DIV,
-
-    // Symbols
-    LBRACE,     // {
-    RBRACE,     // }
-    LPAREN,     // (
-    RPAREN,     // )
-    SEMICOLON,  // ;
-    ASSIGN,     // =
-    GT,         // >
-
-    // Literals & Identifiers
-    IDENTIFIER,
-    NUMBER,
-    STRING,
-
-    // Control
-    END_OF_FILE,
-    UNKNOWN
-};
-
-// Helper function to convert a TokenType enum to its string representation
-std::string tokenTypeToString(TokenType type) {
+// This function is for debugging and now takes a yytokentype
+std::string tokenTypeToString(yytokentype type) {
     switch (type) {
-        // Keywords
-        case TokenType::GLOB:       return "GLOB";
-        case TokenType::PROC:       return "PROC";
-        case TokenType::FUNC:       return "FUNC";
-        case TokenType::MAIN:       return "MAIN";
-        case TokenType::LOCAL:      return "LOCAL";
-        case TokenType::VAR:        return "VAR";
-        case TokenType::RETURN:     return "RETURN";
-        case TokenType::HALT:       return "HALT";
-        case TokenType::PRINT:      return "PRINT";
-        case TokenType::WHILE:      return "WHILE";
-        case TokenType::DO:         return "DO";
-        case TokenType::UNTIL:      return "UNTIL";
-        case TokenType::IF:         return "IF";
-        case TokenType::ELSE:       return "ELSE";
-        case TokenType::NEG:        return "NEG";
-        case TokenType::NOT:        return "NOT";
-        case TokenType::EQ:         return "EQ";
-        case TokenType::OR:         return "OR";
-        case TokenType::AND:        return "AND";
-        case TokenType::PLUS:       return "PLUS";
-        case TokenType::MINUS:      return "MINUS";
-        case TokenType::MULT:       return "MULT";
-        case TokenType::DIV:        return "DIV";
-
-        // Symbols
-        case TokenType::LBRACE:     return "LBRACE";
-        case TokenType::RBRACE:     return "RBRACE";
-        case TokenType::LPAREN:     return "LPAREN";
-        case TokenType::RPAREN:     return "RPAREN";
-        case TokenType::SEMICOLON:  return "SEMICOLON";
-        case TokenType::ASSIGN:     return "ASSIGN";
-        case TokenType::GT:         return "GT";
-
-        // Literals & Identifiers
-        case TokenType::IDENTIFIER: return "IDENTIFIER";
-        case TokenType::NUMBER:     return "NUMBER";
-        case TokenType::STRING:     return "STRING";
-
-        // Control
-        case TokenType::END_OF_FILE:return "END_OF_FILE";
-        case TokenType::UNKNOWN:    return "UNKNOWN";
-        default:                    return "INVALID_TOKEN";
+        case GLOB:       return "GLOB";
+        case PROC:       return "PROC";
+        case FUNC:       return "FUNC";
+        case MAIN:       return "MAIN";
+        case LOCAL:      return "LOCAL";
+        case VAR:        return "VAR";
+        case RETURN:     return "RETURN";
+        case HALT:       return "HALT";
+        case PRINT:      return "PRINT";
+        case WHILE:      return "WHILE";
+        case DO:         return "DO";
+        case UNTIL:      return "UNTIL";
+        case IF:         return "IF";
+        case ELSE:       return "ELSE";
+        case NEG:        return "NEG";
+        case NOT:        return "NOT";
+        case EQ:         return "EQ";
+        case OR:         return "OR";
+        case AND:        return "AND";
+        case PLUS:       return "PLUS";
+        case MINUS:      return "MINUS";
+        case MULT:       return "MULT";
+        case DIV:        return "DIV";
+        case LBRACE:     return "LBRACE";
+        case RBRACE:     return "RBRACE";
+        case LPAREN:     return "LPAREN";
+        case RPAREN:     return "RPAREN";
+        case SEMICOLON:  return "SEMICOLON";
+        case ASSIGN:     return "ASSIGN";
+        case GT:         return "GT";
+        case IDENTIFIER: return "IDENTIFIER";
+        case NUMBER:     return "NUMBER";
+        case STRING:     return "STRING";
+        default:         return "INVALID_TOKEN";
     }
 }
 
-// Represents a single token with its type and value
-struct Token {
-    TokenType type;
-    std::string value;
-    void print() const {
-        std::cout << "Type: " << tokenTypeToString(type)
-                  << ", Value: '" << value << "'" << std::endl;
-    }
-};
+void Token::print() const {
+    std::cout << "Type: " << tokenTypeToString(type)
+              << ", Value: '" << value << "'" << std::endl;
+}
 
-// The Lexer class, responsible for turning source code into tokens
-class Lexer {
-public:
-    Lexer(const std::string& source)
-        : source_(source), current_pos_(0) {
-        keywords_["glob"] = TokenType::GLOB;
-        keywords_["proc"] = TokenType::PROC;
-        keywords_["func"] = TokenType::FUNC;
-        keywords_["main"] = TokenType::MAIN;
-        keywords_["local"] = TokenType::LOCAL;
-        keywords_["var"] = TokenType::VAR;
-        keywords_["return"] = TokenType::RETURN;
-        keywords_["halt"] = TokenType::HALT;
-        keywords_["print"] = TokenType::PRINT;
-        keywords_["while"] = TokenType::WHILE;
-        keywords_["do"] = TokenType::DO;
-        keywords_["until"] = TokenType::UNTIL;
-        keywords_["if"] = TokenType::IF;
-        keywords_["else"] = TokenType::ELSE;
-        keywords_["neg"] = TokenType::NEG;
-        keywords_["not"] = TokenType::NOT;
-        keywords_["eq"] = TokenType::EQ;
-        keywords_["or"] = TokenType::OR;
-        keywords_["and"] = TokenType::AND;
-        keywords_["plus"] = TokenType::PLUS;
-        keywords_["minus"] = TokenType::MINUS;
-        keywords_["mult"] = TokenType::MULT;
-        keywords_["div"] = TokenType::DIV;
-    }
+Lexer::Lexer(const std::string& source)
+    : source_(source), current_pos_(0) {
+    keywords_["glob"] = GLOB;
+    keywords_["proc"] = PROC;
+    keywords_["func"] = FUNC;
+    keywords_["main"] = MAIN;
+    keywords_["local"] = LOCAL;
+    keywords_["var"] = VAR;
+    keywords_["return"] = RETURN;
+    keywords_["halt"] = HALT;
+    keywords_["print"] = PRINT;
+    keywords_["while"] = WHILE;
+    keywords_["do"] = DO;
+    keywords_["until"] = UNTIL;
+    keywords_["if"] = IF;
+    keywords_["else"] = ELSE;
+    keywords_["neg"] = NEG;
+    keywords_["not"] = NOT;
+    keywords_["eq"] = EQ;
+    keywords_["or"] = OR;
+    keywords_["and"] = AND;
+    keywords_["plus"] = PLUS;
+    keywords_["minus"] = MINUS;
+    keywords_["mult"] = MULT;
+    keywords_["div"] = DIV;
+}
 
-    Token getNextToken() {
-        skipWhitespace();
+Token Lexer::getNextToken() {
+    skipWhitespace();
 
-        if (current_pos_ >= source_.length()) {
-            return {TokenType::END_OF_FILE, ""};
-        }
-
-        char current_char = peek();
-
-        if (isalpha(current_char)) {
-            return identifier();
-        }
-
-        if (isdigit(current_char)) {
-            return number();
-        }
-
-        if (current_char == '"') {
-            return stringLiteral();
-        }
-
-        advance(); // Consume the character
-        switch (current_char) {
-            case '{': return {TokenType::LBRACE, "{"};
-            case '}': return {TokenType::RBRACE, "}"};
-            case '(': return {TokenType::LPAREN, "("};
-            case ')': return {TokenType::RPAREN, ")"};
-            case ';': return {TokenType::SEMICOLON, ";"};
-            case '=': return {TokenType::ASSIGN, "="};
-            case '>': return {TokenType::GT, ">"};
-            default:  throw std::runtime_error("Unrecognized character: " + std::string(1, current_char));
-        }
+    if (current_pos_ >= source_.length()) {
+        return {yytokentype(0), ""};
     }
 
-private:
-    std::string source_;
-    size_t current_pos_;
-    std::unordered_map<std::string, TokenType> keywords_;
+    char current_char = peek();
 
-    char peek() {
-        if (current_pos_ >= source_.length()) {
-            return '\0';
-        }
-        return source_[current_pos_];
+    // Use islower to match the spec for user-defined names
+    if (islower(current_char)) {
+        return identifier();
     }
 
-    void advance() {
-        current_pos_++;
+    if (isdigit(current_char)) {
+        return number();
     }
 
-    void skipWhitespace() {
-        while (isspace(peek())) {
-            advance();
-        }
+    if (current_char == '"') {
+        return stringLiteral();
     }
 
-    Token identifier() {
-        size_t start_pos = current_pos_;
-        if (isalpha(peek())) {
-            advance();
+    advance();
+    switch (current_char) {
+        case '{': return {LBRACE, "{"};
+        case '}': return {RBRACE, "}"};
+        case '(': return {LPAREN, "("};
+        case ')': return {RPAREN, ")"};
+        case ';': return {SEMICOLON, ";"};
+        case '=': return {ASSIGN, "="};
+        case '>': return {GT, ">"};
+        default:  throw std::runtime_error("Unrecognized character: " + std::string(1, current_char) + ". Line: " + std::to_string(line_number_));
+    }
+}
+
+char Lexer::peek() {
+    if (current_pos_ >= source_.length()) {
+        return '\0';
+    }
+    return source_[current_pos_];
+}
+
+void Lexer::advance() {
+    current_pos_++;
+}
+
+void Lexer::skipWhitespace() {
+    while (isspace(peek())) {
+        if (peek() == '\n') {
+            line_number_++;
         }
-        while (isalpha(peek())) {
-            advance();
+        advance();
+    }
+}
+
+Token Lexer::identifier() {
+    size_t start_pos = current_pos_;
+    while (islower(peek())) {
+        advance();
+    }
+    while (isdigit(peek())) {
+        advance();
+    }
+    std::string value = source_.substr(start_pos, current_pos_ - start_pos);
+    auto it = keywords_.find(value);
+    if (it != keywords_.end()) {
+        return {it->second, value};
+    }
+    return {IDENTIFIER, value};
+}
+
+Token Lexer::number() {
+    size_t start_pos = current_pos_;
+    char first_char = peek();
+    if (first_char == '0') {
+        advance();
+        if (isdigit(peek())) {
+            throw std::runtime_error("Invalid number format: leading zero on multi-digit number. Line: " + std::to_string(line_number_));
         }
+        return {NUMBER, "0"};
+    } else {
         while (isdigit(peek())) {
             advance();
         }
         std::string value = source_.substr(start_pos, current_pos_ - start_pos);
-        auto it = keywords_.find(value);
-        if (it != keywords_.end()) {
-            return {it->second, value};
-        }
-        return {TokenType::IDENTIFIER, value};
+        return {NUMBER, value};
     }
-
-    Token number() {
-        size_t start_pos = current_pos_;
-        while (isdigit(peek())) {
-            advance();
-        }
-        std::string value = source_.substr(start_pos, current_pos_ - start_pos);
-        return {TokenType::NUMBER, value};
-    }
-
-    Token stringLiteral() {
-        advance(); // Consume the opening quote "
-        size_t start_pos = current_pos_;
-        while (peek() != '"' && peek() != '\0') {
-            advance();
-        }
-        if (peek() == '\0') {
-            throw std::runtime_error("Unterminated string literal.");
-        }
-        std::string value = source_.substr(start_pos, current_pos_ - start_pos);
-        if (peek() == '"') {
-            advance(); // Consume the closing quote "
-        }
-        if (value.length() > 15) {
-            throw std::runtime_error("String literal exceeds maximum length of 15 characters.");
-        }
-        return {TokenType::STRING, value};
-    }
-};
-
-std::string readFileToString(const std::string& filePath) {
-    std::ifstream inputFile(filePath);
-    if (!inputFile.is_open()) {
-        throw std::runtime_error("Could not open file: " + filePath);
-    }
-    std::stringstream buffer;
-    buffer << inputFile.rdbuf();
-    return buffer.str();
 }
 
-int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <source_file.txt>" << std::endl;
-        return 1;
+Token Lexer::stringLiteral() {
+    advance(); // Skip opening quote
+    size_t start_pos = current_pos_;
+    while (isalnum(peek())) { 
+        advance();
     }
-
-    std::string filePath = argv[1];
-    std::string source_code;
-
-    try {
-        source_code = readFileToString(filePath);
-
-        Lexer lexer(source_code);
-        std::cout << "--- Tokenizing " << filePath << " ---" << std::endl;
-        Token token = lexer.getNextToken();
-        while (token.type != TokenType::END_OF_FILE) {
-            token.print();
-            token = lexer.getNextToken();
-        }
-        std::cout << "--- End of File ---" << std::endl;
-
-    } catch (const std::runtime_error& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1; // Exit with an error code
+    std::string value = source_.substr(start_pos, current_pos_ - start_pos);
+    if (peek() != '"') {
+        throw std::runtime_error("Unterminated or invalid string literal. Only letters and digits are allowed. Line: " + std::to_string(line_number_));
     }
-
-    return 0;
+    advance(); 
+    if (value.length() > 15) {
+        throw std::runtime_error("String literal exceeds maximum length of 15 characters. Line: " + std::to_string(line_number_));
+    }
+    return {STRING, value};
 }

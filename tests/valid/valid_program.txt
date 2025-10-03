@@ -1,0 +1,62 @@
+glob {
+    gcounter
+}
+
+proc {
+    printnum(n) {
+        local { }
+        print "Thenumberis";
+        print n
+    }
+
+    donothing() {
+        local { }
+        halt
+    }
+}
+
+func {
+    factorial(n) {
+        local { res temp }
+        if (n eq 0) {
+            return 1
+        } else {
+            temp = (n minus 1);
+            res = factorial(temp);
+            res = (n mult res);
+            return res
+        }
+    }
+}
+
+main {
+    var {
+        i
+        factof5
+    }
+    
+    gcounter = 10;
+    printnum(gcounter);
+
+    i = 0;
+    while ((i > (neg 5)) and (not (i eq 5))) {
+        gcounter = (gcounter plus i);
+        i = (i plus 1)
+    };
+
+    do {
+        i = (i minus 1)
+    } until (i eq 0);
+
+    if (gcounter > 100) {
+        print "gcounterislarge"
+    } else {
+        print "gcountnotlarge"
+    };
+    
+    factof5 = factorial(5);
+    print "Factorialof5is";
+    print factof5;
+
+    halt
+}
