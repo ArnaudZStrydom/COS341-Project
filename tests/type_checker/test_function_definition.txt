@@ -1,0 +1,22 @@
+glob {
+}
+
+proc {
+}
+
+func {
+    add(a) {
+        local { }
+        return a
+    }
+}
+
+main {
+    var {
+        x
+    }
+    
+    x = add(5);
+    
+    halt
+}

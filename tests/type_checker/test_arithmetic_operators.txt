@@ -1,0 +1,24 @@
+glob {
+}
+
+proc {
+}
+
+func {
+}
+
+main {
+    var {
+        x
+        y
+        z
+        w
+    }
+    
+    x = (5 plus 3);
+    y = (10 minus 2);
+    z = (4 mult 3);
+    w = (12 div 4);
+    
+    halt
+}

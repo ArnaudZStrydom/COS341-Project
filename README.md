@@ -1,10 +1,40 @@
 # COS341-Project
-COS341 Project (compiler)
+COS341 Project (SPL Compiler with Type Checker)
+
+## Overview
+This project implements a complete compiler for SPL (Students' Programming Language) including:
+- **Lexer**: Tokenizes SPL source code
+- **Parser**: Builds an Abstract Syntax Tree (AST)
+- **Type Checker**: Validates type correctness according to SPL specification
+
+## Build Instructions
+
+### Build Parser
+```bash
+bison -d spl.y
 ```
-Build parser
-arnaudzs@ArnaudsPC:~/COS341/COS341-Project$ bison -d spl.y
-Build lexer and parser and entrance point
-arnaudzs@ArnaudsPC:~/COS341/COS341-Project$ g++ main.cpp spl.tab.cpp spl_lexer.cpp lexer_bridge.cpp -o spl_compiler
-run testfile
-arnaudzs@ArnaudsPC:~/COS341/COS341-Project$ ./spl_compiler tests/valid/valid_program.txt
+
+### Build Complete Compiler
+```bash
+g++ -std=c++17 -o spl_compiler main.cpp spl.tab.cpp spl_lexer.cpp lexer_bridge.cpp type_checker.cpp
 ```
+
+## Usage
+
+### Compile and Type Check
+```bash
+./spl_compiler tests/valid/valid_program.txt
+```
+
+### Run Test Suite
+```bash
+# Run all organized tests
+./run_organized_tests.sh
+
+# Run simple tests only
+for test in tests/simple/*.txt; do ./spl_compiler "$test"; done
+
+# Run type checker tests only  
+for test in tests/type_checker/*.txt; do ./spl_compiler "$test"; done
+```
+
