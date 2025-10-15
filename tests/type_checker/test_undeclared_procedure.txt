@@ -1,0 +1,18 @@
+glob {
+}
+
+proc {
+}
+
+func {
+}
+
+main {
+    var {
+        x
+    }
+    
+    undefinedproc(5);
+    
+    halt
+}

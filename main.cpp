@@ -5,6 +5,7 @@
 #include <sstream>
 #include "spl.tab.hpp"
 #include "ast.h" // Make sure to include your AST header
+#include "type_checker.h"
 
 extern void initialize_lexer(const std::string& source);
 extern int yyparse();
@@ -32,10 +33,26 @@ int main(int argc, char* argv[]) {
         initialize_lexer(source_code);
         yyparse();
 
-        // ADD THIS PART:
+        // Parse successful, now perform type checking
         if (ast_root) {
             std::cout << "\n--- Abstract Syntax Tree ---" << std::endl;
             ast_root->print();
+            
+            // Perform type checking
+            std::cout << "\n--- Type Checking ---" << std::endl;
+            TypeChecker typeChecker;
+            bool typeCheckPassed = typeChecker.typeCheck(static_cast<ProgramNode*>(ast_root));
+            
+            // Print type checker results
+            typeChecker.printErrors();
+            
+            if (typeCheckPassed) {
+                std::cout << "Type checking passed successfully!" << std::endl;
+            } else {
+                std::cout << "Type checking failed!" << std::endl;
+                return 1; // Exit with error code
+            }
+            
             delete ast_root; // Clean up the memory for the entire tree
         }
 

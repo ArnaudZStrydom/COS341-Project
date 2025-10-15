@@ -1,0 +1,33 @@
+glob {
+    globalvar
+}
+
+proc {
+    testproc(param1) {
+        local { localvar }
+        globalvar = 10;
+        param1 = 5;
+        localvar = 3;
+        halt
+    }
+}
+
+func {
+    testfunc(param1 param2) {
+        local { localvar }
+        localvar = (param1 plus param2);
+        return localvar
+    }
+}
+
+main {
+    var {
+        mainvar
+    }
+    
+    mainvar = 1;
+    testproc(mainvar);
+    mainvar = testfunc(2 3);
+    
+    halt
+}

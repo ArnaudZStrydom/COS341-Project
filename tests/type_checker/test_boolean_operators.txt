@@ -1,0 +1,24 @@
+glob {
+}
+
+proc {
+}
+
+func {
+}
+
+main {
+    var {
+        x
+        y
+    }
+    
+    x = 5;
+    y = 10;
+    
+    if ((x > 5) and (y > 5)) {
+        halt
+    };
+    
+    halt
+}

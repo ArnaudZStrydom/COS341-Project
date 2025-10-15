@@ -1,0 +1,18 @@
+glob {
+}
+
+proc {
+}
+
+func {
+}
+
+main {
+    var {
+        x
+    }
+    
+    x = (not 5);
+    
+    halt
+}

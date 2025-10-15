@@ -1,0 +1,23 @@
+glob {
+}
+
+proc {
+}
+
+func {
+}
+
+main {
+    var {
+        x
+    }
+    
+    x = 5;
+    if (x > 3) {
+        halt
+    } else {
+        halt
+    };
+    
+    halt
+}

@@ -1,0 +1,30 @@
+glob {
+    counter
+}
+
+proc {
+    increment() {
+        local { }
+        counter = (counter plus 1)
+    }
+}
+
+func {
+    add(a) {
+        local { }
+        return a
+    }
+}
+
+main {
+    var {
+        x
+    }
+    
+    counter = 0;
+    increment();
+    x = add(5);
+    
+    halt
+}
+

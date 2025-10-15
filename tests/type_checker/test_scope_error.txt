@@ -1,0 +1,23 @@
+glob {
+}
+
+proc {
+    testproc() {
+        local { }
+        undefinedvar = 5;
+        halt
+    }
+}
+
+func {
+}
+
+main {
+    var {
+        x
+    }
+    
+    testproc();
+    
+    halt
+}

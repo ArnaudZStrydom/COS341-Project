@@ -1,0 +1,21 @@
+glob {
+}
+
+proc {
+}
+
+func {
+}
+
+main {
+    var {
+        i
+    }
+    
+    i = 0;
+    while (i > 5) {
+        i = (i plus 1)
+    };
+    
+    halt
+}

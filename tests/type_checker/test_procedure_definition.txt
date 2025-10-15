@@ -1,0 +1,23 @@
+glob {
+}
+
+proc {
+    printnum(n) {
+        local { }
+        print n
+    }
+}
+
+func {
+}
+
+main {
+    var {
+        x
+    }
+    
+    x = 5;
+    printnum(x);
+    
+    halt
+}
