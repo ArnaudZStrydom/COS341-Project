@@ -1,162 +1,192 @@
-#include "../ast.h"
+#include "codegen.h"
 #include <sstream>
+#include <fstream>
 #include <iostream>
-#include <string>
 
-static int temp_counter = 0;
-static int label_counter = 0;
+// =================== PUBLIC ===================
 
-extern std::string newTemp() { return "t" + std::to_string(temp_counter++); }
-extern std::string newLabel() { return "L" + std::to_string(label_counter++); }
+void CodeGen::generate(ProgramNode* program) {
+    if (!program) return;
 
-std::string generateExpr(ExpressionNode* expr);
+    std::string generatedCode = genProgram(program);
 
-std::string generateVar(VarNode* node) {
-    return node->name;
+    std::stringstream ss(generatedCode);
+    std::string line;
+    while (std::getline(ss, line)) {
+        if (!line.empty())
+            code.push_back(line);
+    }
 }
 
-std::string generateNumber(NumberNode* node) {
-    std::string t = newTemp();
-    std::cout << t << " = " << node->value << std::endl;
-    return t;
+void CodeGen::saveCode() const {
+    std::ofstream outputFile("ICG.txt");
+    if (!outputFile.is_open()) {
+        std::cerr << "Could not open ICG.txt for writing" << std::endl;
+        return;
+    }
+    for (const auto& line : code) {
+        outputFile << line << std::endl;
+    }
+    outputFile.close();
 }
 
-std::string generateString(StringNode* node) {
-    std::string t = newTemp();
-    std::cout << t << " = \"" << node->value << "\"" << std::endl;
-    return t;
-}
+// =================== PRIVATE ===================
 
-std::string generateUnaryOp(UnaryOpNode* node) {
-    std::string val = generateExpr(node->operand);
-    std::string t = newTemp();
-    std::cout << t << " = " << node->op << " " << val << std::endl;
-    return t;
-}
+std::string CodeGen::genProgram(ProgramNode* program) {
+    if (!program) return "";
 
-std::string generateBinaryOp(BinaryOpNode* node) {
-    std::string leftVal = generateExpr(node->left);
-    std::string rightVal = generateExpr(node->right);
-    std::string t = newTemp();
-    std::cout << t << " = " << leftVal << " " << node->op << " " << rightVal << std::endl;
-    return t;
-}
+    std::stringstream ss;
 
-std::string generateFuncCall(FuncCallNode* node) {
-    if (node->args) {
-        for (auto* arg : node->args->elements) {
-            std::string val = generateExpr(arg);
-            std::cout << "param " << val << std::endl;
+    // Procedures
+    if (program->procs) {
+        for (auto* proc : program->procs->elements) {
+            ss << "SUB " << proc->name << "()" << "\n";
+            ss << genStatementList(proc->body->statements);
+            ss << "END SUB\n\n";
         }
     }
-    std::string t = newTemp();
-    std::cout << t << " = call " << node->name << ", " 
-              << (node->args ? node->args->elements.size() : 0) << std::endl;
-    return t;
-}
 
-std::string generateExpr(ExpressionNode* expr) {
-    if (auto* n = dynamic_cast<VarNode*>(expr)) return generateVar(n);
-    if (auto* n = dynamic_cast<NumberNode*>(expr)) return generateNumber(n);
-    if (auto* n = dynamic_cast<StringNode*>(expr)) return generateString(n);
-    if (auto* n = dynamic_cast<UnaryOpNode*>(expr)) return generateUnaryOp(n);
-    if (auto* n = dynamic_cast<BinaryOpNode*>(expr)) return generateBinaryOp(n);
-    if (auto* n = dynamic_cast<FuncCallNode*>(expr)) return generateFuncCall(n);
-
-    std::cerr << "Unknown expression type in codegen." << std::endl;
-    return "ERROR";
-}
-
-void generateStmt(StatementNode* stmt);
-void generateBody(BodyNode* body);
-void generateStatements(AstNodeList<StatementNode>* list);
-
-void generateAssign(AssignNode* node) {
-    std::string rhs = generateExpr(node->expression);
-    std::cout << node->var->name << " = " << rhs << std::endl;
-}
-
-void generatePrint(PrintNode* node) {
-    std::string val = generateExpr(node->expression);
-    std::cout << "print " << val << std::endl;
-}
-
-void generateProcCall(ProcCallNode* node) {
-    if (node->args) {
-        for (auto* arg : node->args->elements) {
-            std::string val = generateExpr(arg);
-            std::cout << "param " << val << std::endl;
+    // Functions
+    if (program->funcs) {
+        for (auto* func : program->funcs->elements) {
+            ss << "FUNCTION " << func->name << "()" << "\n";
+            ss << genStatementList(func->body->statements);
+            ss << "END FUNCTION\n\n";
         }
     }
-    std::cout << "call " << node->name << ", "
-              << (node->args ? node->args->elements.size() : 0) << std::endl;
+
+    // Main program
+    if (program->main) {
+        ss << genStatementList(program->main->statements);
+    }
+
+    return ss.str();
 }
 
-void generateIf(IfNode* node) {
-    std::string cond = generateExpr(node->condition);
-    std::string Ltrue = newLabel();
-    std::string Lend = newLabel();
-    std::cout << "if " << cond << " goto " << Ltrue << std::endl;
-    std::cout << "goto " << Lend << std::endl;
-    std::cout << Ltrue << ":" << std::endl;
-    generateStatements(node->then_branch);
-    std::cout << Lend << ":" << std::endl;
+std::string CodeGen::genStatementList(AstNodeList<StatementNode>* stmts) {
+    if (!stmts) return "";
+    std::stringstream ss;
+    for (auto* stmt : stmts->elements) {
+        ss << genStatement(stmt) << "\n";
+    }
+    return ss.str();
 }
 
-void generateIfElse(IfElseNode* node) {
-    std::string cond = generateExpr(node->condition);
-    std::string Lthen = newLabel();
-    std::string Lelse = newLabel();
-    std::string Lend = newLabel();
+std::string CodeGen::genStatement(StatementNode* stmt) {
+    if (!stmt) return "";
 
-    std::cout << "if " << cond << " goto " << Lthen << std::endl;
-    std::cout << "goto " << Lelse << std::endl;
-    std::cout << Lthen << ":" << std::endl;
-    generateStatements(node->then_branch);
-    std::cout << "goto " << Lend << std::endl;
-    std::cout << Lelse << ":" << std::endl;
-    generateStatements(node->else_branch);
-    std::cout << Lend << ":" << std::endl;
+    if (auto* halt = dynamic_cast<HaltNode*>(stmt)) {
+        return "STOP";
+    } 
+    else if (auto* print = dynamic_cast<PrintNode*>(stmt)) {
+        return "PRINT " + genExpression(print->expression);
+    } 
+    else if (auto* assign = dynamic_cast<AssignNode*>(stmt)) {
+        return assign->var->name + " = " + genExpression(assign->expression);
+    } 
+    else if (auto* procCall = dynamic_cast<ProcCallNode*>(stmt)) {
+        std::string args;
+        if (procCall->args) {
+            for (size_t i = 0; i < procCall->args->elements.size(); i++) {
+                args += genExpression(procCall->args->elements[i]);
+                if (i + 1 < procCall->args->elements.size()) args += ", ";
+            }
+        }
+        return "CALL " + procCall->name + "(" + args + ")";
+    } 
+    else if (auto* ifNode = dynamic_cast<IfNode*>(stmt)) {
+        std::stringstream ss;
+        std::string labelT = "LBL_THEN_" + std::to_string(reinterpret_cast<uintptr_t>(ifNode));
+        std::string labelExit = "LBL_EXIT_" + std::to_string(reinterpret_cast<uintptr_t>(ifNode));
+
+        ss << "IF " << genExpression(ifNode->condition) << " THEN " << labelT << "\n";
+        ss << "GOTO " << labelExit << "\n";
+        ss << "REM " << labelT << "\n";
+        ss << genStatementList(ifNode->then_branch);
+        ss << "REM " << labelExit;
+
+        return ss.str();
+    }
+    else if (auto* ifElseNode = dynamic_cast<IfElseNode*>(stmt)) {
+        std::stringstream ss;
+        std::string labelThen = "LBL_THEN_" + std::to_string(reinterpret_cast<uintptr_t>(ifElseNode));
+        std::string labelExit = "LBL_EXIT_" + std::to_string(reinterpret_cast<uintptr_t>(ifElseNode));
+
+        ss << "IF " << genExpression(ifElseNode->condition) << " THEN " << labelThen << "\n";
+        ss << genStatementList(ifElseNode->else_branch);
+        ss << "GOTO " << labelExit << "\n";
+        ss << "REM " << labelThen << "\n";
+        ss << genStatementList(ifElseNode->then_branch);
+        ss << "REM " << labelExit;
+
+        return ss.str();
+    }
+    else if (auto* whileNode = dynamic_cast<WhileNode*>(stmt)) {
+        std::stringstream ss;
+        std::string labelStart = "LBL_WHILE_" + std::to_string(reinterpret_cast<uintptr_t>(whileNode));
+        std::string labelExit = "LBL_EXIT_WHILE_" + std::to_string(reinterpret_cast<uintptr_t>(whileNode));
+
+        ss << "REM " << labelStart << "\n";
+        ss << "IF NOT (" << genExpression(whileNode->condition) << ") THEN " << labelExit << "\n";
+        ss << genStatementList(whileNode->body);
+        ss << "GOTO " << labelStart << "\n";
+        ss << "REM " << labelExit;
+
+        return ss.str();
+    }
+    else if (auto* doUntilNode = dynamic_cast<DoUntilNode*>(stmt)) {
+        std::stringstream ss;
+        std::string labelStart = "LBL_DO_" + std::to_string(reinterpret_cast<uintptr_t>(doUntilNode));
+
+        ss << "REM " << labelStart << "\n";
+        ss << genStatementList(doUntilNode->body);
+        ss << "IF NOT (" << genExpression(doUntilNode->condition) << ") THEN " << labelStart;
+
+        return ss.str();
+    }
+    else if (auto* returnNode = dynamic_cast<ReturnNode*>(stmt)) {
+        return "RETURN " + genExpression(returnNode->expression);
+    }
+
+    return "";
 }
 
-void generateWhile(WhileNode* node) {
-    std::string Lbegin = newLabel();
-    std::string Lend = newLabel();
-    std::cout << Lbegin << ":" << std::endl;
-    std::string cond = generateExpr(node->condition);
-    std::cout << "ifFalse " << cond << " goto " << Lend << std::endl;
-    generateStatements(node->body);
-    std::cout << "goto " << Lbegin << std::endl;
-    std::cout << Lend << ":" << std::endl;
-}
+std::string CodeGen::genExpression(ExpressionNode* expr) {
+    if (!expr) return "";
 
-void generateDoUntil(DoUntilNode* node) {
-    std::string Lbegin = newLabel();
-    std::cout << Lbegin << ":" << std::endl;
-    generateStatements(node->body);
-    std::string cond = generateExpr(node->condition);
-    std::cout << "ifFalse " << cond << " goto " << Lbegin << std::endl;
-}
+    if (auto* number = dynamic_cast<NumberNode*>(expr)) {
+        return number->value;
+    } 
+    else if (auto* var = dynamic_cast<VarNode*>(expr)) {
+        return var->name;
+    } 
+    else if (auto* stringNode = dynamic_cast<StringNode*>(expr)) {
+        return "\"" + stringNode->value + "\"";
+    } 
+    else if (auto* unary = dynamic_cast<UnaryOpNode*>(expr)) {
+        if (unary->op == "neg") return "-" + genExpression(unary->operand);
+        // 'not' handled in branching
+    } 
+    else if (auto* binary = dynamic_cast<BinaryOpNode*>(expr)) {
+        std::string op;
+        if (binary->op == "plus") op = " + ";
+        else if (binary->op == "minus") op = " - ";
+        else if (binary->op == "mult") op = " * ";
+        else if (binary->op == "div") op = " / ";
+        else if (binary->op == "eq") op = " = ";
+        else if (binary->op == ">") op = " > ";
+        return genExpression(binary->left) + op + genExpression(binary->right);
+    } 
+    else if (auto* funcCall = dynamic_cast<FuncCallNode*>(expr)) {
+        std::string args;
+        if (funcCall->args) {
+            for (size_t i = 0; i < funcCall->args->elements.size(); i++) {
+                args += genExpression(funcCall->args->elements[i]);
+                if (i + 1 < funcCall->args->elements.size()) args += ", ";
+            }
+        }
+        return funcCall->name + "(" + args + ")";
+    }
 
-void generateReturn(ReturnNode* node) {
-    std::string val = generateExpr(node->expression);
-    std::cout << "return " << val << std::endl;
-}
-
-void generateHalt(HaltNode*) {
-    std::cout << "halt" << std::endl;
-}
-
-void generateStmt(StatementNode* stmt) {
-    if (auto* n = dynamic_cast<AssignNode*>(stmt)) return generateAssign(n);
-    if (auto* n = dynamic_cast<PrintNode*>(stmt)) return generatePrint(n);
-    if (auto* n = dynamic_cast<ProcCallNode*>(stmt)) return generateProcCall(n);
-    if (auto* n = dynamic_cast<IfNode*>(stmt)) return generateIf(n);
-    if (auto* n = dynamic_cast<IfElseNode*>(stmt)) return generateIfElse(n);
-    if (auto* n = dynamic_cast<WhileNode*>(stmt)) return generateWhile(n);
-    if (auto* n = dynamic_cast<DoUntilNode*>(stmt)) return generateDoUntil(n);
-    if (auto* n = dynamic_cast<ReturnNode*>(stmt)) return generateReturn(n);
-    if (auto* n = dynamic_cast<HaltNode*>(stmt)) return generateHalt(n);
-
-    std::cerr << "Unknown statement type in codegen." << std::endl;
+    return "";
 }

@@ -6,6 +6,7 @@
 #include "spl.tab.hpp"
 #include "ast.h" // Make sure to include your AST header
 #include "type_checker.h"
+#include "Intermediate-Code-Generation/codegen.h"
 
 extern void initialize_lexer(const std::string& source);
 extern int yyparse();
@@ -52,7 +53,15 @@ int main(int argc, char* argv[]) {
                 std::cout << "Type checking failed!" << std::endl;
                 return 1; // Exit with error code
             }
-            
+
+        //Intermediate Code Generation
+        std::cout << "\n--- Intermediate Code Generation ---" << std::endl;
+        CodeGen codeGen;
+        codeGen.generate(static_cast<ProgramNode*>(ast_root));
+        std::cout<<"Code can be found in ICG.txt"<<std::endl;
+        //codeGen.printCode();
+        codeGen.saveCode();
+
             delete ast_root; // Clean up the memory for the entire tree
         }
 

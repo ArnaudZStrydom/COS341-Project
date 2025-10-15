@@ -16,7 +16,7 @@ bison -d spl.y
 
 ### Build Complete Compiler
 ```bash
-g++ -std=c++17 -o spl_compiler main.cpp spl.tab.cpp spl_lexer.cpp lexer_bridge.cpp type_checker.cpp
+g++ -std=c++17 -o spl_compiler main.cpp spl.tab.cpp spl_lexer.cpp lexer_bridge.cpp type_checker.cpp Intermediate-Code-Generation/codegen.cpp
 ```
 
 ## Usage
