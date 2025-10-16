@@ -15,6 +15,9 @@ public:
     // Save the generated code to a file
     void saveCode() const;
 
+    //for testing
+    void printCode() const;
+
 private:
     // Temp counter for generating temporaries like t1, t2, ...
     int tempCounter = 0;

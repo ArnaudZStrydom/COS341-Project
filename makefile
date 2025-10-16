@@ -4,5 +4,10 @@ build:
 run:
 	./spl_compiler tests/valid/valid_program.txt
 
+test:
+	./run_organized_tests.sh
+	g++ -std=c++17 tests/ICG/ICG_test.cpp -o test
+	./test
+
 clean:
 	rm -f spl_compiler *.o ICG.txt

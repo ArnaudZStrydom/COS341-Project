@@ -233,3 +233,9 @@ std::string CodeGen::genExpression(ExpressionNode* expr) {
 
     return "";
 }
+
+void CodeGen::printCode() const{
+    for (const auto& line : code) {
+        std::cout<<line<<std::endl;
+    }
+}
