@@ -6,22 +6,19 @@
 // =================== PUBLIC ===================
 
 void CodeGen::generate(ProgramNode* program) {
+    code.clear();
+    tempCounter = 0;
+
     if (!program) return;
 
-    std::string generatedCode = genProgram(program);
-
-    std::stringstream ss(generatedCode);
-    std::string line;
-    while (std::getline(ss, line)) {
-        if (!line.empty())
-            code.push_back(line);
-    }
+    // Generate program and fill code vector directly
+    genProgram(program);
 }
 
 void CodeGen::saveCode() const {
     std::ofstream outputFile("ICG.txt");
     if (!outputFile.is_open()) {
-        std::cerr << "Could not open ICG.txt for writing" << std::endl;
+        std::cerr << "Could not open ICG.txt" << std::endl;
         return;
     }
     for (const auto& line : code) {
@@ -32,128 +29,130 @@ void CodeGen::saveCode() const {
 
 // =================== PRIVATE ===================
 
+std::string CodeGen::newTemp() {
+    ++tempCounter;
+    return "t" + std::to_string(tempCounter);
+}
+
+void CodeGen::emit(const std::string& line) {
+    code.push_back(line);
+}
+
 std::string CodeGen::genProgram(ProgramNode* program) {
     if (!program) return "";
-
-    std::stringstream ss;
 
     // Procedures
     if (program->procs) {
         for (auto* proc : program->procs->elements) {
-            ss << "SUB " << proc->name << "()" << "\n";
-            ss << genStatementList(proc->body->statements);
-            ss << "END SUB\n\n";
+            emit("SUB " + proc->name + "()");
+            // produce body
+            genStatementList(proc->body->statements);
+            emit("END SUB");
+            emit(""); // blank line
         }
     }
 
     // Functions
     if (program->funcs) {
         for (auto* func : program->funcs->elements) {
-            ss << "FUNCTION " << func->name << "()" << "\n";
-            ss << genStatementList(func->body->statements);
-            ss << "END FUNCTION\n\n";
+            // keep same style as before for header; if you have func->params you can print them here
+            emit("FUNCTION " + func->name + "()");
+            genStatementList(func->body->statements);
+            emit("END FUNCTION");
+            emit("");
         }
     }
 
     // Main program
     if (program->main) {
-        ss << genStatementList(program->main->statements);
+        genStatementList(program->main->statements);
     }
 
-    return ss.str();
+    return ""; // unused
 }
 
-std::string CodeGen::genStatementList(AstNodeList<StatementNode>* stmts) {
-    if (!stmts) return "";
-    std::stringstream ss;
+void CodeGen::genStatementList(AstNodeList<StatementNode>* stmts) {
+    if (!stmts) return;
     for (auto* stmt : stmts->elements) {
-        ss << genStatement(stmt) << "\n";
+        genStatement(stmt);
     }
-    return ss.str();
 }
 
-std::string CodeGen::genStatement(StatementNode* stmt) {
-    if (!stmt) return "";
+void CodeGen::genStatement(StatementNode* stmt) {
+    if (!stmt) return;
 
     if (auto* halt = dynamic_cast<HaltNode*>(stmt)) {
-        return "STOP";
+        emit("STOP");
     } 
     else if (auto* print = dynamic_cast<PrintNode*>(stmt)) {
-        return "PRINT " + genExpression(print->expression);
+        std::string e = genExpression(print->expression);
+        emit("PRINT " + e);
     } 
     else if (auto* assign = dynamic_cast<AssignNode*>(stmt)) {
-        return assign->var->name + " = " + genExpression(assign->expression);
+        // Compute RHS into a value (temp or literal/var)
+        std::string rhs = genExpression(assign->expression);
+        // Direct assignment to lhs
+        emit(assign->var->name + " = " + rhs);
     } 
     else if (auto* procCall = dynamic_cast<ProcCallNode*>(stmt)) {
-        std::string args;
+        // Emit params and then a call (no return)
         if (procCall->args) {
             for (size_t i = 0; i < procCall->args->elements.size(); i++) {
-                args += genExpression(procCall->args->elements[i]);
-                if (i + 1 < procCall->args->elements.size()) args += ", ";
+                std::string argVal = genExpression(procCall->args->elements[i]);
+                emit("PARAM " + argVal);
             }
         }
-        return "CALL " + procCall->name + "(" + args + ")";
+        emit("CALL " + procCall->name + "()");
     } 
     else if (auto* ifNode = dynamic_cast<IfNode*>(stmt)) {
         std::stringstream ss;
         std::string labelT = "LBL_THEN_" + std::to_string(reinterpret_cast<uintptr_t>(ifNode));
         std::string labelExit = "LBL_EXIT_" + std::to_string(reinterpret_cast<uintptr_t>(ifNode));
 
-        ss << "IF " << genExpression(ifNode->condition) << " THEN " << labelT << "\n";
-        ss << "GOTO " << labelExit << "\n";
-        ss << "REM " << labelT << "\n";
-        ss << genStatementList(ifNode->then_branch);
-        ss << "REM " << labelExit;
-
-        return ss.str();
+        emit("IF " + genExpression(ifNode->condition) + " THEN " + labelT);
+        emit("GOTO " + labelExit);
+        emit("REM " + labelT);
+        genStatementList(ifNode->then_branch);
+        emit("REM " + labelExit);
     }
     else if (auto* ifElseNode = dynamic_cast<IfElseNode*>(stmt)) {
-        std::stringstream ss;
         std::string labelThen = "LBL_THEN_" + std::to_string(reinterpret_cast<uintptr_t>(ifElseNode));
         std::string labelExit = "LBL_EXIT_" + std::to_string(reinterpret_cast<uintptr_t>(ifElseNode));
 
-        ss << "IF " << genExpression(ifElseNode->condition) << " THEN " << labelThen << "\n";
-        ss << genStatementList(ifElseNode->else_branch);
-        ss << "GOTO " << labelExit << "\n";
-        ss << "REM " << labelThen << "\n";
-        ss << genStatementList(ifElseNode->then_branch);
-        ss << "REM " << labelExit;
-
-        return ss.str();
+        emit("IF " + genExpression(ifElseNode->condition) + " THEN " + labelThen);
+        genStatementList(ifElseNode->else_branch);
+        emit("GOTO " + labelExit);
+        emit("REM " + labelThen);
+        genStatementList(ifElseNode->then_branch);
+        emit("REM " + labelExit);
     }
     else if (auto* whileNode = dynamic_cast<WhileNode*>(stmt)) {
-        std::stringstream ss;
         std::string labelStart = "LBL_WHILE_" + std::to_string(reinterpret_cast<uintptr_t>(whileNode));
         std::string labelExit = "LBL_EXIT_WHILE_" + std::to_string(reinterpret_cast<uintptr_t>(whileNode));
 
-        ss << "REM " << labelStart << "\n";
-        ss << "IF NOT (" << genExpression(whileNode->condition) << ") THEN " << labelExit << "\n";
-        ss << genStatementList(whileNode->body);
-        ss << "GOTO " << labelStart << "\n";
-        ss << "REM " << labelExit;
-
-        return ss.str();
+        emit("REM " + labelStart);
+        emit("IF NOT (" + genExpression(whileNode->condition) + ") THEN " + labelExit);
+        genStatementList(whileNode->body);
+        emit("GOTO " + labelStart);
+        emit("REM " + labelExit);
     }
     else if (auto* doUntilNode = dynamic_cast<DoUntilNode*>(stmt)) {
-        std::stringstream ss;
         std::string labelStart = "LBL_DO_" + std::to_string(reinterpret_cast<uintptr_t>(doUntilNode));
 
-        ss << "REM " << labelStart << "\n";
-        ss << genStatementList(doUntilNode->body);
-        ss << "IF NOT (" << genExpression(doUntilNode->condition) << ") THEN " << labelStart;
-
-        return ss.str();
+        emit("REM " + labelStart);
+        genStatementList(doUntilNode->body);
+        emit("IF NOT (" + genExpression(doUntilNode->condition) + ") THEN " + labelStart);
     }
     else if (auto* returnNode = dynamic_cast<ReturnNode*>(stmt)) {
-        return "RETURN " + genExpression(returnNode->expression);
+        std::string e = genExpression(returnNode->expression);
+        emit("RETURN " + e);
     }
-
-    return "";
 }
 
 std::string CodeGen::genExpression(ExpressionNode* expr) {
     if (!expr) return "";
 
+    // Numbers and vars and strings are returned directly (no temporaries)
     if (auto* number = dynamic_cast<NumberNode*>(expr)) {
         return number->value;
     } 
@@ -164,8 +163,19 @@ std::string CodeGen::genExpression(ExpressionNode* expr) {
         return "\"" + stringNode->value + "\"";
     } 
     else if (auto* unary = dynamic_cast<UnaryOpNode*>(expr)) {
-        if (unary->op == "neg") return "-" + genExpression(unary->operand);
-        // 'not' handled in branching
+        if (unary->op == "neg") {
+            std::string operand = genExpression(unary->operand);
+            // If operand is not a temp, create one to hold it (keeps consistent TF)
+            if (operand.size() > 0 && operand[0] != 't') {
+                std::string tmp = newTemp();
+                emit(tmp + " = " + operand);
+                operand = tmp;
+            }
+            std::string res = newTemp();
+            emit(res + " = -" + operand);
+            return res;
+        }
+        // 'not' handled in branching elsewhere
     } 
     else if (auto* binary = dynamic_cast<BinaryOpNode*>(expr)) {
         std::string op;
@@ -175,17 +185,50 @@ std::string CodeGen::genExpression(ExpressionNode* expr) {
         else if (binary->op == "div") op = " / ";
         else if (binary->op == "eq") op = " = ";
         else if (binary->op == ">") op = " > ";
-        return genExpression(binary->left) + op + genExpression(binary->right);
+        else op = " " + binary->op + " ";
+
+        // generate left and right expressions (may emit temps)
+        std::string leftVal = genExpression(binary->left);
+        std::string rightVal = genExpression(binary->right);
+
+        // ensure left and right are available as temps or direct operands
+        std::string leftTemp = leftVal;
+        if (leftVal.empty()) leftTemp = "0";
+        if (leftVal.size() > 0 && leftVal[0] != 't' && !(leftVal[0] == '"' )) {
+            // create a temp holding the left value to mirror your desired IR style
+            std::string lt = newTemp();
+            emit(lt + " = " + leftVal);
+            leftTemp = lt;
+        }
+
+        std::string rightTemp = rightVal;
+        if (rightVal.empty()) rightTemp = "0";
+        if (rightVal.size() > 0 && rightVal[0] != 't' && !(rightVal[0] == '"' )) {
+            std::string rt = newTemp();
+            emit(rt + " = " + rightVal);
+            rightTemp = rt;
+        }
+
+        std::string result = newTemp();
+        emit(result + " = " + leftTemp + op + rightTemp);
+        return result;
     } 
     else if (auto* funcCall = dynamic_cast<FuncCallNode*>(expr)) {
-        std::string args;
+        // For function calls inside expressions, emit PARAM lines then a CALL into a temp
+        int argc = 0;
+        std::string params = "";
         if (funcCall->args) {
             for (size_t i = 0; i < funcCall->args->elements.size(); i++) {
-                args += genExpression(funcCall->args->elements[i]);
-                if (i + 1 < funcCall->args->elements.size()) args += ", ";
+                std::string a = genExpression(funcCall->args->elements[i]);
+                params += a + ",";
+                //emit("PARAM " + a);
+                ++argc;
             }
         }
-        return funcCall->name + "(" + args + ")";
+        std::string result = newTemp();
+        params = params.substr(0, params.length() - 1);
+        emit(result + " = CALL_" + funcCall->name + "(" + params/* std::to_string(argc)) */ + ")");
+        return result;
     }
 
     return "";

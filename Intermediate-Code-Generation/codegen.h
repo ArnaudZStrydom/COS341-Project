@@ -16,11 +16,18 @@ public:
     void saveCode() const;
 
 private:
+    // Temp counter for generating temporaries like t1, t2, ...
+    int tempCounter = 0;
+    std::string newTemp();
+
     // Helpers for generating code
     std::string genProgram(ProgramNode* program);
-    std::string genStatementList(AstNodeList<StatementNode>* stmts);
-    std::string genStatement(StatementNode* stmt);
+    void genStatementList(AstNodeList<StatementNode>* stmts);
+    void genStatement(StatementNode* stmt);
     std::string genExpression(ExpressionNode* expr);
+
+    // Utility to append a line to the output
+    void emit(const std::string& line);
 };
 
 #endif // CODEGEN_H

@@ -48,6 +48,7 @@ int main(int argc, char* argv[]) {
             typeChecker.printErrors();
             
             if (typeCheckPassed) {
+                typeChecker.printSymbolTable();
                 std::cout << "Type checking passed successfully!" << std::endl;
             } else {
                 std::cout << "Type checking failed!" << std::endl;
