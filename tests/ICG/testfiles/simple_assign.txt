@@ -1,0 +1,4 @@
+main {
+    local { a }
+    a = 5 plus 3
+}

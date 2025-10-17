@@ -1,0 +1,13 @@
+func {
+    factorial(n) {
+        local { res temp }
+        if n eq 0 {
+            return 1
+        } else {
+            temp = n minus 1
+            res = factorial(temp)
+            res = n mult res
+            return res
+        }
+    }
+}

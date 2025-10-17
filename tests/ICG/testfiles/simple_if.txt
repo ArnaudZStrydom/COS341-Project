@@ -1,0 +1,7 @@
+main {
+    local { a }
+    a = 0
+    if a eq 0 {
+        print "zero"
+    }
+}
