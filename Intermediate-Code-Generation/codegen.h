@@ -4,33 +4,42 @@
 #include <string>
 #include <vector>
 #include "../ast.h"
+#include "../type_checker.h"  // include for SymbolTable and Type
 
 class CodeGen {
 public:
     std::vector<std::string> code;
 
-    // Main method to generate code from the AST
+    // Allow optional symbol table injection
+    CodeGen(const SymbolTable* symtab = nullptr) : symbolTable(symtab) {}
+
     void generate(ProgramNode* program);
-
-    // Save the generated code to a file
     void saveCode() const;
-
-    //for testing
     void printCode() const;
 
-private:
-    // Temp counter for generating temporaries like t1, t2, ...
-    int tempCounter = 0;
-    std::string newTemp();
+    // Optional: attach symbol table later
+    void setSymbolTable(const SymbolTable* symtab) { symbolTable = symtab; }
 
-    // Helpers for generating code
+private:
+    int tempCounter = 0;
+    int labelCounter = 0;  // For generating unique labels
+    const SymbolTable* symbolTable; // read-only pointer to type checker’s table
+
+    std::string newTemp();
+    std::string newLabel(const std::string& prefix);
+    void emit(const std::string& line);
+
     std::string genProgram(ProgramNode* program);
     void genStatementList(AstNodeList<StatementNode>* stmts);
     void genStatement(StatementNode* stmt);
-    std::string genExpression(ExpressionNode* expr);
 
-    // Utility to append a line to the output
-    void emit(const std::string& line);
+    // `inCondition` = true avoids generating temporaries for comparisons
+    std::string genExpression(ExpressionNode* expr, bool inCondition = false);
+
+    // Conditional generation that flattens boolean expressions
+    void genCondition(ExpressionNode* expr, const std::string& labelTrue, const std::string& labelFalse);
+
+    std::string resolveVariable(const std::string& name) const;
 };
 
 #endif // CODEGEN_H

@@ -58,6 +58,7 @@ int main(int argc, char* argv[]) {
         //Intermediate Code Generation
         std::cout << "\n--- Intermediate Code Generation ---" << std::endl;
         CodeGen codeGen;
+        codeGen.setSymbolTable(&typeChecker.getSymbolTable());
         codeGen.generate(static_cast<ProgramNode*>(ast_root));
         std::cout<<"Code can be found in ICG.txt"<<std::endl;
         //codeGen.printCode();

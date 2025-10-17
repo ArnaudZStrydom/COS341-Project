@@ -8,10 +8,9 @@
 void CodeGen::generate(ProgramNode* program) {
     code.clear();
     tempCounter = 0;
+    labelCounter = 0;
 
     if (!program) return;
-
-    // Generate program and fill code vector directly
     genProgram(program);
 }
 
@@ -34,28 +33,31 @@ std::string CodeGen::newTemp() {
     return "t" + std::to_string(tempCounter);
 }
 
+std::string CodeGen::newLabel(const std::string& prefix) {
+    ++labelCounter;
+    return prefix + "_" + std::to_string(labelCounter);
+}
+
 void CodeGen::emit(const std::string& line) {
     code.push_back(line);
 }
 
+// ------------------- Program & Statements -------------------
+
 std::string CodeGen::genProgram(ProgramNode* program) {
     if (!program) return "";
 
-    // Procedures
     if (program->procs) {
         for (auto* proc : program->procs->elements) {
             emit("SUB " + proc->name + "()");
-            // produce body
             genStatementList(proc->body->statements);
             emit("END SUB");
-            emit(""); // blank line
+            emit("");
         }
     }
 
-    // Functions
     if (program->funcs) {
         for (auto* func : program->funcs->elements) {
-            // keep same style as before for header; if you have func->params you can print them here
             emit("FUNCTION " + func->name + "()");
             genStatementList(func->body->statements);
             emit("END FUNCTION");
@@ -63,12 +65,11 @@ std::string CodeGen::genProgram(ProgramNode* program) {
         }
     }
 
-    // Main program
     if (program->main) {
         genStatementList(program->main->statements);
     }
 
-    return ""; // unused
+    return "";
 }
 
 void CodeGen::genStatementList(AstNodeList<StatementNode>* stmts) {
@@ -89,62 +90,66 @@ void CodeGen::genStatement(StatementNode* stmt) {
         emit("PRINT " + e);
     } 
     else if (auto* assign = dynamic_cast<AssignNode*>(stmt)) {
-        // Compute RHS into a value (temp or literal/var)
         std::string rhs = genExpression(assign->expression);
-        // Direct assignment to lhs
         emit(assign->var->name + " = " + rhs);
     } 
     else if (auto* procCall = dynamic_cast<ProcCallNode*>(stmt)) {
-        // Emit params and then a call (no return)
         std::string params = "";
         if (procCall->args) {
-            for (size_t i = 0; i < procCall->args->elements.size(); i++) {
-                std::string argVal = genExpression(procCall->args->elements[i]);
-                params += argVal + ",";
-                //emit("PARAM " + argVal);
-            }
+            for (auto* a : procCall->args->elements) params += genExpression(a) + ",";
+            if (!params.empty()) params.pop_back();
         }
-        params = params.substr(0, params.length() - 1);
-        emit("CALL_" + procCall->name + "(" + params +")");
+        emit("CALL_" + procCall->name + "(" + params + ")");
     } 
     else if (auto* ifNode = dynamic_cast<IfNode*>(stmt)) {
-        std::stringstream ss;
-        std::string labelT = "LBL_THEN_" + std::to_string(reinterpret_cast<uintptr_t>(ifNode));
-        std::string labelExit = "LBL_EXIT_" + std::to_string(reinterpret_cast<uintptr_t>(ifNode));
-
-        emit("IF " + genExpression(ifNode->condition) + " THEN " + labelT);
-        emit("GOTO " + labelExit);
-        emit("REM " + labelT);
+        std::string labelThen = newLabel("LBL_THEN");
+        std::string labelExit = newLabel("LBL_EXIT");
+        genCondition(ifNode->condition, labelThen, labelExit);
+        emit("REM " + labelThen);
         genStatementList(ifNode->then_branch);
         emit("REM " + labelExit);
     }
     else if (auto* ifElseNode = dynamic_cast<IfElseNode*>(stmt)) {
-        std::string labelThen = "LBL_THEN_" + std::to_string(reinterpret_cast<uintptr_t>(ifElseNode));
-        std::string labelExit = "LBL_EXIT_" + std::to_string(reinterpret_cast<uintptr_t>(ifElseNode));
+        std::string labelThen = newLabel("LBL_THEN");
+        std::string labelElse = newLabel("LBL_ELSE");
+        std::string labelExit = newLabel("LBL_EXIT");
 
-        emit("IF " + genExpression(ifElseNode->condition) + " THEN " + labelThen);
+        genCondition(ifElseNode->condition, labelThen, labelElse);
+
+        // Else branch
+        emit("REM " + labelElse);
         genStatementList(ifElseNode->else_branch);
         emit("GOTO " + labelExit);
+
+        // Then branch
         emit("REM " + labelThen);
         genStatementList(ifElseNode->then_branch);
+
+        // Exit
         emit("REM " + labelExit);
     }
     else if (auto* whileNode = dynamic_cast<WhileNode*>(stmt)) {
-        std::string labelStart = "LBL_WHILE_" + std::to_string(reinterpret_cast<uintptr_t>(whileNode));
-        std::string labelExit = "LBL_EXIT_WHILE_" + std::to_string(reinterpret_cast<uintptr_t>(whileNode));
+        std::string labelStart = newLabel("LBL_WHILE");
+        std::string labelExit = newLabel("LBL_EXIT_WHILE");
 
         emit("REM " + labelStart);
-        emit("IF NOT (" + genExpression(whileNode->condition) + ") THEN " + labelExit);
+        genCondition(whileNode->condition, labelStart + "_BODY", labelExit);
+
+        emit("REM " + labelStart + "_BODY");
         genStatementList(whileNode->body);
         emit("GOTO " + labelStart);
+
         emit("REM " + labelExit);
     }
     else if (auto* doUntilNode = dynamic_cast<DoUntilNode*>(stmt)) {
-        std::string labelStart = "LBL_DO_" + std::to_string(reinterpret_cast<uintptr_t>(doUntilNode));
+        std::string labelStart = newLabel("LBL_DO");
+        std::string labelExit = newLabel("LBL_EXIT_DO");
 
         emit("REM " + labelStart);
         genStatementList(doUntilNode->body);
-        emit("IF NOT (" + genExpression(doUntilNode->condition) + ") THEN " + labelStart);
+        // Do-until: jump if condition is false
+        genCondition(doUntilNode->condition, labelExit, labelStart);
+        emit("REM " + labelExit);
     }
     else if (auto* returnNode = dynamic_cast<ReturnNode*>(stmt)) {
         std::string e = genExpression(returnNode->expression);
@@ -152,93 +157,138 @@ void CodeGen::genStatement(StatementNode* stmt) {
     }
 }
 
-std::string CodeGen::genExpression(ExpressionNode* expr) {
+
+// ------------------- Expressions -------------------
+
+std::string CodeGen::genExpression(ExpressionNode* expr, bool inCondition) {
     if (!expr) return "";
 
-    // Numbers and vars and strings are returned directly (no temporaries)
-    if (auto* number = dynamic_cast<NumberNode*>(expr)) {
-        return number->value;
-    } 
-    else if (auto* var = dynamic_cast<VarNode*>(expr)) {
-        return var->name;
-    } 
-    else if (auto* stringNode = dynamic_cast<StringNode*>(expr)) {
-        return "\"" + stringNode->value + "\"";
-    } 
-    else if (auto* unary = dynamic_cast<UnaryOpNode*>(expr)) {
+    if (auto* number = dynamic_cast<NumberNode*>(expr)) return number->value;
+    if (auto* var = dynamic_cast<VarNode*>(expr)) return resolveVariable(var->name);
+    if (auto* stringNode = dynamic_cast<StringNode*>(expr)) return "\"" + stringNode->value + "\"";
+
+    if (auto* unary = dynamic_cast<UnaryOpNode*>(expr)) {
         if (unary->op == "neg") {
             std::string operand = genExpression(unary->operand);
-            // If operand is not a temp, create one to hold it (keeps consistent TF)
-            if (operand.size() > 0 && operand[0] != 't') {
-                std::string tmp = newTemp();
-                emit(tmp + " = " + operand);
-                operand = tmp;
-            }
-            std::string res = newTemp();
-            emit(res + " = -" + operand);
-            return res;
+            std::string tmp = newTemp();
+            emit(tmp + " = -" + operand);
+            return tmp;
         }
-        // 'not' handled in branching elsewhere
-    } 
-    else if (auto* binary = dynamic_cast<BinaryOpNode*>(expr)) {
+    }
+
+    if (auto* binary = dynamic_cast<BinaryOpNode*>(expr)) {
         std::string op;
+        bool isComparison = false;
+
         if (binary->op == "plus") op = " + ";
         else if (binary->op == "minus") op = " - ";
         else if (binary->op == "mult") op = " * ";
         else if (binary->op == "div") op = " / ";
-        else if (binary->op == "eq") op = " = ";
-        else if (binary->op == ">") op = " > ";
+        else if (binary->op == "eq") { op = " = "; isComparison = true; }
+        else if (binary->op == "ne") { op = " <> "; isComparison = true; }
+        else if (binary->op == "gt" || binary->op == ">") { op = " > "; isComparison = true; }
+        else if (binary->op == "lt" || binary->op == "<") { op = " < "; isComparison = true; }
+        else if (binary->op == "ge") { op = " >= "; isComparison = true; }
+        else if (binary->op == "le") { op = " <= "; isComparison = true; }
         else op = " " + binary->op + " ";
 
-        // generate left and right expressions (may emit temps)
-        std::string leftVal = genExpression(binary->left);
-        std::string rightVal = genExpression(binary->right);
+        std::string left = genExpression(binary->left);
+        std::string right = genExpression(binary->right);
 
-        // ensure left and right are available as temps or direct operands
-        std::string leftTemp = leftVal;
-        if (leftVal.empty()) leftTemp = "0";
-        if (leftVal.size() > 0 && leftVal[0] != 't' && !(leftVal[0] == '"' )) {
-            // create a temp holding the left value to mirror your desired IR style
-            std::string lt = newTemp();
-            emit(lt + " = " + leftVal);
-            leftTemp = lt;
-        }
+        if (inCondition && isComparison) return left + op + right;
 
-        std::string rightTemp = rightVal;
-        if (rightVal.empty()) rightTemp = "0";
-        if (rightVal.size() > 0 && rightVal[0] != 't' && !(rightVal[0] == '"' )) {
-            std::string rt = newTemp();
-            emit(rt + " = " + rightVal);
-            rightTemp = rt;
-        }
+        std::string tmp = newTemp();
+        emit(tmp + " = " + left + op + right);
+        return tmp;
+    }
 
-        std::string result = newTemp();
-        emit(result + " = " + leftTemp + op + rightTemp);
-        return result;
-    } 
-    else if (auto* funcCall = dynamic_cast<FuncCallNode*>(expr)) {
-        // For function calls inside expressions, emit PARAM lines then a CALL into a temp
-        int argc = 0;
+    if (auto* funcCall = dynamic_cast<FuncCallNode*>(expr)) {
         std::string params = "";
         if (funcCall->args) {
-            for (size_t i = 0; i < funcCall->args->elements.size(); i++) {
-                std::string a = genExpression(funcCall->args->elements[i]);
-                params += a + ",";
-                //emit("PARAM " + a);
-                ++argc;
-            }
+            for (auto* a : funcCall->args->elements) params += genExpression(a) + ",";
+            if (!params.empty()) params.pop_back();
         }
-        std::string result = newTemp();
-        params = params.substr(0, params.length() - 1);
-        emit(result + " = CALL_" + funcCall->name + "(" + params/* std::to_string(argc)) */ + ")");
-        return result;
+        std::string tmp = newTemp();
+        emit(tmp + " = CALL_" + funcCall->name + "(" + params + ")");
+        return tmp;
     }
 
     return "";
 }
 
-void CodeGen::printCode() const{
-    for (const auto& line : code) {
-        std::cout<<line<<std::endl;
+// ------------------- Conditional Flattening -------------------
+void CodeGen::genCondition(ExpressionNode* expr, const std::string& labelTrue, const std::string& labelFalse) {
+    if (!expr) return;
+
+    if (auto* binary = dynamic_cast<BinaryOpNode*>(expr)) {
+        // Flatten AND
+        if (binary->op == "and") {
+            std::string midLabel = newLabel("LBL_NEXT");
+            genCondition(binary->left, midLabel, labelFalse);  // if left true, continue to midLabel
+            emit("REM " + midLabel);
+            genCondition(binary->right, labelTrue, labelFalse);
+            return;
+        }
+
+        // Flatten OR
+        if (binary->op == "or") {
+            std::string midLabel = newLabel("LBL_NEXT");
+            genCondition(binary->left, labelTrue, midLabel);  // if left true, jump to labelTrue
+            emit("REM " + midLabel);
+            genCondition(binary->right, labelTrue, labelFalse);
+            return;
+        }
+
+        // Regular comparison: eq, ne, gt, lt, ge, le
+        std::string left = genExpression(binary->left, true);
+        std::string right = genExpression(binary->right, true);
+        std::string op;
+        if (binary->op == "eq") op = " = ";
+        else if (binary->op == "ne") op = " <> ";
+        else if (binary->op == "gt" || binary->op == ">") op = " > ";
+        else if (binary->op == "lt" || binary->op == "<") op = " < ";
+        else if (binary->op == "ge") op = " >= ";
+        else if (binary->op == "le") op = " <= ";
+        else op = " " + binary->op + " ";
+
+        // Direct IF without creating temporaries or NOT
+        emit("IF " + left + op + right + " THEN " + labelTrue);
+        emit("GOTO " + labelFalse);
+        return;
     }
+
+    if (auto* unary = dynamic_cast<UnaryOpNode*>(expr)) {
+        if (unary->op == "not") {
+            // Swap THEN/ELSE labels instead of generating NOT
+            genCondition(unary->operand, labelFalse, labelTrue);
+            return;
+        }
+
+        if (unary->op == "neg") {
+            std::string operand = genExpression(unary->operand, true);
+            std::string tmp = newTemp();
+            emit(tmp + " = -" + operand);
+            emit("IF " + tmp + " THEN " + labelTrue);
+            emit("GOTO " + labelFalse);
+            return;
+        }
+    }
+
+    // Default fallback for simple variable or literal
+    std::string cond = genExpression(expr, true);
+    emit("IF " + cond + " THEN " + labelTrue);
+    emit("GOTO " + labelFalse);
+}
+
+
+// ------------------- Utility -------------------
+
+void CodeGen::printCode() const {
+    for (const auto& line : code) std::cout << line << std::endl;
+}
+
+std::string CodeGen::resolveVariable(const std::string& name) const {
+    if (!symbolTable) return name;
+    if (symbolTable->isDeclared(name)) return name;
+    return name;
 }
