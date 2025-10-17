@@ -96,13 +96,16 @@ void CodeGen::genStatement(StatementNode* stmt) {
     } 
     else if (auto* procCall = dynamic_cast<ProcCallNode*>(stmt)) {
         // Emit params and then a call (no return)
+        std::string params = "";
         if (procCall->args) {
             for (size_t i = 0; i < procCall->args->elements.size(); i++) {
                 std::string argVal = genExpression(procCall->args->elements[i]);
-                emit("PARAM " + argVal);
+                params += argVal + ",";
+                //emit("PARAM " + argVal);
             }
         }
-        emit("CALL " + procCall->name + "()");
+        params = params.substr(0, params.length() - 1);
+        emit("CALL_" + procCall->name + "(" + params +")");
     } 
     else if (auto* ifNode = dynamic_cast<IfNode*>(stmt)) {
         std::stringstream ss;
