@@ -1,4 +1,14 @@
+glob {
+}
+
+proc {
+}
+
+func {
+}
+
 main {
-    local { a }
-    a = 5 plus 3
+    var {
+    }
+    halt
 }
