@@ -292,3 +292,12 @@ std::string CodeGen::resolveVariable(const std::string& name) const {
     if (symbolTable->isDeclared(name)) return name;
     return name;
 }
+
+std::string CodeGen::toString() const {
+    std::string codestring;
+    for (const auto& line : this->code) {
+        codestring += line;
+    }
+    return codestring;
+}
+

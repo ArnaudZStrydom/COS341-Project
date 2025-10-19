@@ -16,6 +16,7 @@ public:
     void generate(ProgramNode* program);
     void saveCode() const;
     void printCode() const;
+    std::string toString() const;
 
     // Optional: attach symbol table later
     void setSymbolTable(const SymbolTable* symtab) { symbolTable = symtab; }

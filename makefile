@@ -51,4 +51,4 @@ run: build
 # ------------------- Clean -------------------
 
 clean:
-	rm -f *.o */*.o spl_compiler test ICG.txt
+	rm -f $(OBJ) $(TEST_OBJ) spl_compiler test ICG.txt

@@ -1,0 +1,18 @@
+glob {
+}
+
+proc {
+}
+
+func {
+    identity(x) {
+        local { temp }
+        temp = x;
+        return temp
+    }
+}
+
+main {
+    var { }
+    halt
+}

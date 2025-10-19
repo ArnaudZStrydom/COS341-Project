@@ -1,7 +1,0 @@
-main {
-    local { i }
-    i = 3
-    while i gt 0 {
-        i = i minus 1
-    }
-}
