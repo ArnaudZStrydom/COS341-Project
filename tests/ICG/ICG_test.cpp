@@ -9,7 +9,7 @@
 #include <fstream>
 #include <sstream>
 
-extern AstNode* ast_root;  // declared in spl.y / parser
+extern AstNode* ast_root;
 extern void initialize_lexer(const std::string& source);
 extern int yyparse();
 
@@ -93,3 +93,35 @@ TEST_CASE("Test simple function") {
     delete ast_root;
     ast_root = NULL;
 }
+
+TEST_CASE("Test function with if-else") {
+    std::string src = readFileToString("tests/ICG/testfiles/simple_if_else.txt");
+
+    initialize_lexer(src);
+    int res = yyparse();
+    REQUIRE(ast_root != nullptr);
+
+    TypeChecker typeChecker;
+    bool typeCheckPassed = typeChecker.typeCheck(static_cast<ProgramNode*>(ast_root));
+    REQUIRE(typeCheckPassed);
+
+    CodeGen codeGen;
+    codeGen.setSymbolTable(&typeChecker.getSymbolTable());
+    codeGen.generate(static_cast<ProgramNode*>(ast_root));
+
+    CHECK(codeGen.toString() ==
+        "IF 1 > 100 THEN LBL_THEN_1"
+        "GOTO LBL_ELSE_2"
+        "REM LBL_ELSE_2"
+        "PRINT \"gcountnotlarge\""
+        "GOTO LBL_EXIT_3"
+        "REM LBL_THEN_1"
+        "PRINT \"gcounterislarge\""
+        "REM LBL_EXIT_3"
+        "STOP"
+    );
+
+    delete ast_root;
+    ast_root = nullptr;
+}
+

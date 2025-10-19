@@ -1,0 +1,20 @@
+glob {
+}
+
+proc {
+}
+
+func {
+}
+
+main {
+    var {  }
+
+    if (1 > 100) {
+        print "gcounterislarge"
+    } else {
+        print "gcountnotlarge"
+    };
+
+    halt
+}
