@@ -49,9 +49,9 @@ std::string CodeGen::genProgram(ProgramNode* program) {
 
     if (program->procs) {
         for (auto* proc : program->procs->elements) {
-            emit("SUB " + proc->name + "()");
+            emit("PROC " + proc->name + "()");
             genStatementList(proc->body->statements);
-            emit("END SUB");
+            emit("END PROC");
             emit("");
         }
     }
@@ -177,10 +177,10 @@ std::string CodeGen::genExpression(ExpressionNode* expr, bool inCondition) {
     }
 
     if (auto* binary = dynamic_cast<BinaryOpNode*>(expr)) {
-        std::string op;
-        bool isComparison = false;
+    std::string op;
+    bool isComparison = false;
 
-        if (binary->op == "plus") op = " + ";
+    if (binary->op == "plus") op = " + ";
         else if (binary->op == "minus") op = " - ";
         else if (binary->op == "mult") op = " * ";
         else if (binary->op == "div") op = " / ";
@@ -195,12 +195,23 @@ std::string CodeGen::genExpression(ExpressionNode* expr, bool inCondition) {
         std::string left = genExpression(binary->left);
         std::string right = genExpression(binary->right);
 
-        if (inCondition && isComparison) return left + op + right;
+        // If we're generating condition code, don't create temporaries
+        if (inCondition && isComparison)
+            return left + op + right;
+
+        // Always move operands into temporaries (pure 3-address form)
+        std::string tmpLeft = newTemp();
+        emit(tmpLeft + " = " + left);
+
+        std::string tmpRight = newTemp();
+        emit(tmpRight + " = " + right);
 
         std::string tmp = newTemp();
-        emit(tmp + " = " + left + op + right);
+        emit(tmp + " = " + tmpLeft + op + tmpRight);
         return tmp;
     }
+
+
 
     if (auto* funcCall = dynamic_cast<FuncCallNode*>(expr)) {
         std::string params = "";
@@ -224,7 +235,7 @@ void CodeGen::genCondition(ExpressionNode* expr, const std::string& labelTrue, c
         // Flatten AND
         if (binary->op == "and") {
             std::string midLabel = newLabel("LBL_NEXT");
-            genCondition(binary->left, midLabel, labelFalse);  // if left true, continue to midLabel
+            genCondition(binary->left, midLabel, labelFalse); 
             emit("REM " + midLabel);
             genCondition(binary->right, labelTrue, labelFalse);
             return;
@@ -233,13 +244,12 @@ void CodeGen::genCondition(ExpressionNode* expr, const std::string& labelTrue, c
         // Flatten OR
         if (binary->op == "or") {
             std::string midLabel = newLabel("LBL_NEXT");
-            genCondition(binary->left, labelTrue, midLabel);  // if left true, jump to labelTrue
+            genCondition(binary->left, labelTrue, midLabel);  
             emit("REM " + midLabel);
             genCondition(binary->right, labelTrue, labelFalse);
             return;
         }
 
-        // Regular comparison: eq, ne, gt, lt, ge, le
         std::string left = genExpression(binary->left, true);
         std::string right = genExpression(binary->right, true);
         std::string op;
@@ -251,7 +261,6 @@ void CodeGen::genCondition(ExpressionNode* expr, const std::string& labelTrue, c
         else if (binary->op == "le") op = " <= ";
         else op = " " + binary->op + " ";
 
-        // Direct IF without creating temporaries or NOT
         emit("IF " + left + op + right + " THEN " + labelTrue);
         emit("GOTO " + labelFalse);
         return;
@@ -259,7 +268,6 @@ void CodeGen::genCondition(ExpressionNode* expr, const std::string& labelTrue, c
 
     if (auto* unary = dynamic_cast<UnaryOpNode*>(expr)) {
         if (unary->op == "not") {
-            // Swap THEN/ELSE labels instead of generating NOT
             genCondition(unary->operand, labelFalse, labelTrue);
             return;
         }
@@ -274,7 +282,6 @@ void CodeGen::genCondition(ExpressionNode* expr, const std::string& labelTrue, c
         }
     }
 
-    // Default fallback for simple variable or literal
     std::string cond = genExpression(expr, true);
     emit("IF " + cond + " THEN " + labelTrue);
     emit("GOTO " + labelFalse);
