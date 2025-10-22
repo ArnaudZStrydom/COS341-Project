@@ -801,3 +801,11 @@ void TypeChecker::printErrors() const {
 void TypeChecker::printSymbolTable() const {
     symbolTable.printSymbols();
 }
+
+std::unordered_map<std::string, Type> SymbolTable::getSymbols() const {
+    return symbols;
+}
+
+const std::vector<std::unordered_map<std::string, Type>>& SymbolTable::getScopes() const {
+    return scopes;
+}

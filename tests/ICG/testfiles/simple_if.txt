@@ -1,0 +1,14 @@
+glob {
+}
+
+proc {
+}
+
+func {
+}
+
+main {
+    var { a }
+    a = 0;
+    if(1 eq 1){ halt }
+}

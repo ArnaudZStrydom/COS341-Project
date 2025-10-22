@@ -1,0 +1,20 @@
+glob {
+}
+
+proc {
+}
+
+func {
+}
+
+main {
+    var { x }
+
+    while (100 > x) {
+        x = (x plus 1)
+    };
+
+    print "Heybrother";
+    
+    halt
+}

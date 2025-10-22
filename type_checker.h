@@ -41,6 +41,11 @@ public:
     
     // Debugging
     void printSymbols() const;
+    //getter for symbols
+    std::unordered_map<std::string, Type> getSymbols() const;
+    //getter for scopes
+    const std::vector<std::unordered_map<std::string, Type>>& getScopes() const;
+
 };
 
 // Type Checker class
@@ -106,6 +111,8 @@ public:
     
     // Debugging
     void printSymbolTable() const;
+    //symbol table getter
+    const SymbolTable& getSymbolTable() const { return symbolTable; }
 };
 
 #endif // TYPE_CHECKER_H
