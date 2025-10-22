@@ -64,7 +64,16 @@ TEST_CASE("Test simple if") {
     codeGen.generate(static_cast<ProgramNode*>(ast_root));
     //codeGen.printCode();
 
-    CHECK(codeGen.toString() == "a = 0IF 1 = 1 THEN LBL_THEN_1GOTO LBL_EXIT_2REM LBL_THEN_1STOPREM LBL_EXIT_2");
+    CHECK(codeGen.toString() == 
+    "a = 0"
+    "t1 = 1"
+    "t2 = 1"
+    "IF t1 = t2 THEN LBL_THEN_1"
+    "GOTO LBL_EXIT_2"
+    "REM LBL_THEN_1"
+    "STOP"
+    "REM LBL_EXIT_2"
+);
 
     delete ast_root;
     ast_root = NULL;
@@ -109,17 +118,20 @@ TEST_CASE("Test simple if-else") {
     codeGen.setSymbolTable(&typeChecker.getSymbolTable());
     codeGen.generate(static_cast<ProgramNode*>(ast_root));
 
-    CHECK(codeGen.toString() ==
-        "IF 1 > 100 THEN LBL_THEN_1"
-        "GOTO LBL_ELSE_2"
-        "REM LBL_ELSE_2"
-        "PRINT \"gcountnotlarge\""
-        "GOTO LBL_EXIT_3"
-        "REM LBL_THEN_1"
-        "PRINT \"gcounterislarge\""
-        "REM LBL_EXIT_3"
-        "STOP"
-    );
+        CHECK(codeGen.toString() ==
+            "t1 = 1"
+            "t2 = 100"
+            "IF t1 > t2 THEN LBL_THEN_1"
+            "GOTO LBL_ELSE_2"
+            "REM LBL_ELSE_2"
+            "PRINT \"gcountnotlarge\""
+            "GOTO LBL_EXIT_3"
+            "REM LBL_THEN_1"
+            "PRINT \"gcounterislarge\""
+            "REM LBL_EXIT_3"
+            "STOP"
+        );
+
 
     delete ast_root;
     ast_root = nullptr;
@@ -142,20 +154,7 @@ TEST_CASE("Test simple while loop") {
 
     //codeGen.printCode();
 
-    CHECK(codeGen.toString() ==
-        "REM LBL_WHILE_1"
-        "IF 100 > x THEN LBL_WHILE_1_BODY"
-        "GOTO LBL_EXIT_WHILE_2"
-        "REM LBL_WHILE_1_BODY"
-        "t1 = x"
-        "t2 = 1"
-        "t3 = t1 + t2"
-        "x = t3"
-        "GOTO LBL_WHILE_1"
-        "REM LBL_EXIT_WHILE_2"
-        "PRINT \"Heybrother\""
-        "STOP"
-    );
+    CHECK(codeGen.toString() == "REM LBL_WHILE_1t1 = 100t2 = xIF t1 > t2 THEN LBL_WHILE_1_BODYGOTO LBL_EXIT_WHILE_2REM LBL_WHILE_1_BODYt3 = xt4 = 1t5 = t3 + t4x = t5GOTO LBL_WHILE_1REM LBL_EXIT_WHILE_2PRINT \"Heybrother\"STOP");
 
     delete ast_root;
     ast_root = nullptr;
@@ -318,11 +317,14 @@ TEST_CASE("test_do_until_loop.txt") {
         "t2 = 1"
         "t3 = t1 + t2"
         "i = t3"
-        "IF i > 5 THEN LBL_EXIT_DO_2"
+        "t4 = i"
+        "t5 = 5"
+        "IF t4 > t5 THEN LBL_EXIT_DO_2"
         "GOTO LBL_DO_1"
         "REM LBL_EXIT_DO_2"
         "STOP"
     );
+
 
     delete ast_root;
     ast_root = nullptr;

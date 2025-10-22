@@ -163,24 +163,34 @@ void CodeGen::genStatement(StatementNode* stmt) {
 std::string CodeGen::genExpression(ExpressionNode* expr, bool inCondition) {
     if (!expr) return "";
 
-    if (auto* number = dynamic_cast<NumberNode*>(expr)) return number->value;
-    if (auto* var = dynamic_cast<VarNode*>(expr)) return resolveVariable(var->name);
-    if (auto* stringNode = dynamic_cast<StringNode*>(expr)) return "\"" + stringNode->value + "\"";
+    if (auto* number = dynamic_cast<NumberNode*>(expr)) {
+        return number->value; // constants stay inline
+    }
+
+    if (auto* var = dynamic_cast<VarNode*>(expr)) {
+        return resolveVariable(var->name); // variables stay inline
+    }
+
+    if (auto* stringNode = dynamic_cast<StringNode*>(expr)) {
+        return "\"" + stringNode->value + "\"";
+    }
 
     if (auto* unary = dynamic_cast<UnaryOpNode*>(expr)) {
-        if (unary->op == "neg") {
-            std::string operand = genExpression(unary->operand);
-            std::string tmp = newTemp();
-            emit(tmp + " = -" + operand);
-            return tmp;
-        }
+        std::string operand = genExpression(unary->operand);
+        std::string tmp = newTemp();
+
+        if (unary->op == "neg") emit(tmp + " = -" + operand);
+        else if (unary->op == "not") emit(tmp + " = !" + operand);
+        else emit(tmp + " = " + unary->op + " " + operand);
+
+        return tmp;
     }
 
     if (auto* binary = dynamic_cast<BinaryOpNode*>(expr)) {
-    std::string op;
-    bool isComparison = false;
+        std::string op;
+        bool isComparison = false;
 
-    if (binary->op == "plus") op = " + ";
+        if (binary->op == "plus") op = " + ";
         else if (binary->op == "minus") op = " - ";
         else if (binary->op == "mult") op = " * ";
         else if (binary->op == "div") op = " / ";
@@ -195,28 +205,25 @@ std::string CodeGen::genExpression(ExpressionNode* expr, bool inCondition) {
         std::string left = genExpression(binary->left);
         std::string right = genExpression(binary->right);
 
-        // If we're generating condition code, don't create temporaries
-        if (inCondition && isComparison)
-            return left + op + right;
-
-        // Always move operands into temporaries (pure 3-address form)
+        // always emit temporaries for both operands
         std::string tmpLeft = newTemp();
         emit(tmpLeft + " = " + left);
 
         std::string tmpRight = newTemp();
         emit(tmpRight + " = " + right);
 
+        // comparisons still get a temporary to hold boolean result
         std::string tmp = newTemp();
         emit(tmp + " = " + tmpLeft + op + tmpRight);
+
         return tmp;
     }
-
-
 
     if (auto* funcCall = dynamic_cast<FuncCallNode*>(expr)) {
         std::string params = "";
         if (funcCall->args) {
-            for (auto* a : funcCall->args->elements) params += genExpression(a) + ",";
+            for (auto* a : funcCall->args->elements)
+                params += genExpression(a) + ",";
             if (!params.empty()) params.pop_back();
         }
         std::string tmp = newTemp();
@@ -227,31 +234,42 @@ std::string CodeGen::genExpression(ExpressionNode* expr, bool inCondition) {
     return "";
 }
 
+
 // ------------------- Conditional Flattening -------------------
-void CodeGen::genCondition(ExpressionNode* expr, const std::string& labelTrue, const std::string& labelFalse) {
+void CodeGen::genCondition(ExpressionNode* expr,
+                           const std::string& labelTrue,
+                           const std::string& labelFalse) {
     if (!expr) return;
 
     if (auto* binary = dynamic_cast<BinaryOpNode*>(expr)) {
-        // Flatten AND
+        // Short-circuit AND
         if (binary->op == "and") {
             std::string midLabel = newLabel("LBL_NEXT");
-            genCondition(binary->left, midLabel, labelFalse); 
+            genCondition(binary->left, midLabel, labelFalse);
             emit("REM " + midLabel);
             genCondition(binary->right, labelTrue, labelFalse);
             return;
         }
 
-        // Flatten OR
+        // Short-circuit OR
         if (binary->op == "or") {
             std::string midLabel = newLabel("LBL_NEXT");
-            genCondition(binary->left, labelTrue, midLabel);  
+            genCondition(binary->left, labelTrue, midLabel);
             emit("REM " + midLabel);
             genCondition(binary->right, labelTrue, labelFalse);
             return;
         }
 
-        std::string left = genExpression(binary->left, true);
-        std::string right = genExpression(binary->right, true);
+        // Handle all standard comparisons via temporaries
+        std::string left = genExpression(binary->left);
+        std::string right = genExpression(binary->right);
+
+        std::string tmpLeft = newTemp();
+        emit(tmpLeft + " = " + left);
+
+        std::string tmpRight = newTemp();
+        emit(tmpRight + " = " + right);
+
         std::string op;
         if (binary->op == "eq") op = " = ";
         else if (binary->op == "ne") op = " <> ";
@@ -261,7 +279,7 @@ void CodeGen::genCondition(ExpressionNode* expr, const std::string& labelTrue, c
         else if (binary->op == "le") op = " <= ";
         else op = " " + binary->op + " ";
 
-        emit("IF " + left + op + right + " THEN " + labelTrue);
+        emit("IF " + tmpLeft + op + tmpRight + " THEN " + labelTrue);
         emit("GOTO " + labelFalse);
         return;
     }
@@ -272,20 +290,19 @@ void CodeGen::genCondition(ExpressionNode* expr, const std::string& labelTrue, c
             return;
         }
 
-        if (unary->op == "neg") {
-            std::string operand = genExpression(unary->operand, true);
-            std::string tmp = newTemp();
-            emit(tmp + " = -" + operand);
-            emit("IF " + tmp + " THEN " + labelTrue);
-            emit("GOTO " + labelFalse);
-            return;
-        }
+        // Unary negation handled as expression
+        std::string cond = genExpression(expr);
+        emit("IF " + cond + " THEN " + labelTrue);
+        emit("GOTO " + labelFalse);
+        return;
     }
 
-    std::string cond = genExpression(expr, true);
+    // Fallback (non-binary expression)
+    std::string cond = genExpression(expr);
     emit("IF " + cond + " THEN " + labelTrue);
     emit("GOTO " + labelFalse);
 }
+
 
 
 // ------------------- Utility -------------------
