@@ -61,6 +61,7 @@ int main(int argc, char* argv[]) {
         codeGen.setSymbolTable(&typeChecker.getSymbolTable());
         codeGen.generate(static_cast<ProgramNode*>(ast_root));
         std::cout<<"Code can be found in ICG.txt"<<std::endl;
+        codeGen.saveToHTML();
         //codeGen.printCode();
         codeGen.saveCode();
 

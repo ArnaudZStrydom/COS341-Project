@@ -325,3 +325,27 @@ std::string CodeGen::toString() const {
     return codestring;
 }
 
+void CodeGen::saveToHTML() const {
+    std::stringstream htmlContent;
+    htmlContent << "<!DOCTYPE html>\n"
+                << "<html>\n"
+                << "<head><title>Intermediate Generated Code</title></head>\n"
+                << "<body>\n"
+                << "<h1>Intermediate Generated Code</h1>\n"
+                << "<pre><code>\n";
+
+    for (const std::string& line : code) {
+        htmlContent << line << "\n";
+    }
+
+    htmlContent << "</code></pre>\n" << "</body>\n" << "</html>\n";
+
+    std::ofstream outputFile("ICG.html");
+    if (outputFile.is_open()) {
+        outputFile << htmlContent.str();
+        outputFile.close();
+        std::cout << "Intermediate code can be found in ICG.html" << std::endl;
+    } else {
+        std::cerr << "Error: Unable to open file for writing.\n";
+    }
+}
