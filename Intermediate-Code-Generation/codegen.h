@@ -4,11 +4,13 @@
 #include <string>
 #include <vector>
 #include "../ast.h"
-#include "../type_checker.h" 
+#include "../type_checker.h"
+#include <map>
 
 class CodeGen {
 public:
     std::vector<std::string> code;
+    std::map<std::string, int> lineLabelMap;
 
     CodeGen(const SymbolTable* symtab = nullptr) : symbolTable(symtab) {}
 
@@ -19,6 +21,7 @@ public:
 
     void setSymbolTable(const SymbolTable* symtab) { symbolTable = symtab; }
     void saveToHTML() const;
+    void startPostProcess();
 
 
 private:
@@ -40,6 +43,10 @@ private:
 
     std::string resolveVariable(const std::string& name) const;
 
+    // Gather appropriate labels
+    void gatherLabel(const std::string line);
+    // Where appropriate change labels to line numbers
+    void changeLabelToLineNumber(std::string &line);
 };
 
 #endif // CODEGEN_H

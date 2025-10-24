@@ -349,3 +349,95 @@ void CodeGen::saveToHTML() const {
         std::cerr << "Error: Unable to open file for writing.\n";
     }
 }
+
+// ------------------- Post Processing -------------------
+
+void CodeGen::startPostProcess(){
+
+    // Add line number
+    int number = 0;
+    for (auto& line : this->code) {
+        if(line != ""){
+            number += 10;
+            line = std::to_string(number) + " " + line;
+        }
+    }
+    // Save Labels
+    for (const auto& line : this->code) {
+        gatherLabel(line);
+    }
+
+    for (auto& line : this->code) {
+        changeLabelToLineNumber(line);
+    }
+    return;
+}
+
+void CodeGen::gatherLabel(const std::string line){
+    std::istringstream iss(line);
+    std::string token;
+    std::vector<std::string> tokens;
+    
+    // Split line into separate strings
+    while (iss >> token) {
+        tokens.push_back(token);
+    }
+    // Any line with less than 3 words and numbers doesn't have labels
+    if (tokens.size() < 3) {
+        return;
+    }
+    
+    // First token should be a number
+    int lineNumber;
+    try {
+        lineNumber = std::stoi(tokens[0]);
+    } catch (...) {
+        return;
+    }
+    
+    if (tokens[1] != "REM") {
+        return;
+    }
+    
+    if (tokens[tokens.size() - 1].find("LBL") != std::string::npos ) {
+        // && tokens[tokens.size() - 1].find("WHILE") == std::string::npos
+        lineLabelMap[tokens[tokens.size() - 1]] = lineNumber;
+        return;
+    }
+    
+}
+
+void CodeGen::changeLabelToLineNumber(std::string &line){
+    std::istringstream iss(line);
+    std::string token;
+    std::vector<std::string> tokens;
+    
+    // Split line into separate strings with a delimiter of a whitespace
+    while (iss >> token) {
+        tokens.push_back(token);
+    }
+    // Any line with less than 3 words and numbers doesn't have labels
+    if (tokens.size() < 3) {
+        return;
+    }
+    
+    // First token should be a number
+    int lineNumberFromToken;
+    try {
+        lineNumberFromToken = std::stoi(tokens[0]);
+    } catch (...) {
+        return;
+    }
+
+    bool changeLabel = false;
+    for (auto& [label, lineNumber] : lineLabelMap){
+        if(lineNumber != lineNumberFromToken && label == tokens[tokens.size() - 1]){
+            line = "";
+            for(size_t i = 0; i < tokens.size() - 1; i++){
+                line += tokens[i] + " ";
+            };
+            line += std::to_string(lineNumber);
+            return;
+        }
+    }
+}
