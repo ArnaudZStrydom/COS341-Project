@@ -1,0 +1,84 @@
+10 a = 20
+20 PRINT "AssignPrintTest"
+30 PRINT a
+40 PRINT "IfElseTest"
+50 PRINT "Shouldprint50"
+60 t1 = a
+70 t2 = 15
+80 IF t1 > t2 THEN 130
+90 GOTO 100
+100 REM LBL_ELSE_2
+110 b = 60
+120 GOTO 150
+130 REM LBL_THEN_1
+140 b = 50
+150 REM LBL_EXIT_3
+160 PRINT b
+170 PRINT "FuncCallTest"
+180 PRINT "Shouldprint60"
+190 X1 = b
+200 t19 = X1
+210 t20 = 10
+220 t21 = (t19 + t20)
+230 R2 = t21
+240 t3 = R2
+250 c = t3
+260 PRINT c
+270 PRINT "ProcCallTest"
+280 V3 = c
+290 PRINT "Valuefromproc"
+300 PRINT V3
+310 PRINT "WhileLoopTest"
+320 REM LBL_WHILE_4
+330 t4 = a
+340 t5 = 17
+350 IF t4 > t5 THEN 370
+360 GOTO 440
+370 REM LBL_WHILE_4_BODY
+380 PRINT a
+390 t6 = a
+400 t7 = 1
+410 t8 = (t6 - t7)
+420 a = t8
+430 GOTO 320
+440 REM LBL_EXIT_WHILE_5
+450 PRINT "DoUntilLoopTest"
+460 REM LBL_DO_6
+470 PRINT a
+480 t9 = a
+490 t10 = 1
+500 t11 = (t9 + t10)
+510 a = t11
+520 t12 = a
+530 t13 = 20
+540 IF t12 = t13 THEN 560
+550 GOTO 460
+560 REM LBL_EXIT_DO_7
+570 PRINT "ComplexExprTest"
+580 PRINT "Shouldprint15"
+590 X4 = 10
+600 t22 = X4
+610 t23 = 10
+620 t24 = (t22 + t23)
+630 R5 = t24
+640 t14 = R5
+650 temp1 = t14
+660 A6 = 10
+670 B7 = 5
+680 t25 = A6
+690 t26 = B7
+700 t27 = (t25 - t26)
+710 R8 = t27
+720 t15 = R8
+730 temp2 = t15
+740 t16 = temp1
+750 t17 = temp2
+760 t18 = (t16 - t17)
+770 total = t18
+780 PRINT total
+790 PRINT "GlobalVarTest"
+800 PRINT "Shouldprint0"
+810 gcounter = 0
+820 PRINT gcounter
+830 PRINT "FinalHalt"
+840 STOP

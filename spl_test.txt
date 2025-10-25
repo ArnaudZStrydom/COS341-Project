@@ -1,0 +1,78 @@
+glob {
+    gcounter
+}
+
+proc {
+    printval(v) {
+        local {}
+        print "Valuefromproc";
+        print v
+    }
+}
+
+func {
+    addten(x) {
+        local { result }
+        result = (x plus 10);
+        return result
+    }
+
+    sub(a b) {
+        local { result }
+        result = (a minus b);
+        return result
+    }
+}
+
+main {
+    var { a b c total temp1 temp2 }
+
+    a = 20;
+    print "AssignPrintTest";
+    print a;
+
+    print "IfElseTest";
+    print "Shouldprint50";
+    if (a > 15) {
+        b = 50
+    } else {
+        b = 60
+    };
+    print b;
+
+    print "FuncCallTest";
+    print "Shouldprint60";
+    c = addten(b);
+    print c;
+
+    print "ProcCallTest";
+    printval(c);
+
+    print "WhileLoopTest";
+    while (a > 17) {
+        print a;
+        a = (a minus 1)
+    };
+
+    print "DoUntilLoopTest";
+    do {
+        print a;
+        a = (a plus 1)
+    } until (a eq 20);
+
+    print "ComplexExprTest";
+    print "Shouldprint15";
+    
+    temp1 = addten(10);
+    temp2 = sub(10 5);
+    total = ( temp1 minus temp2 );
+    print total;
+    
+    print "GlobalVarTest";
+    print "Shouldprint0";
+    gcounter = 0;
+    print gcounter;
+
+    print "FinalHalt";
+    halt
+}

@@ -55,18 +55,32 @@ int main(int argc, char* argv[]) {
                 return 1; // Exit with error code
             }
 
-        //Intermediate Code Generation
-        std::cout << "\n--- Intermediate Code Generation ---" << std::endl;
-        CodeGen codeGen;
-        codeGen.setSymbolTable(&typeChecker.getSymbolTable());
-        codeGen.generate(static_cast<ProgramNode*>(ast_root));
-        std::cout<<"Code can be found in ICG.txt"<<std::endl;
-        codeGen.startPostProcess();
-        
-        codeGen.saveToHTML();
-        //codeGen.printCode();
-        codeGen.saveCode();
+            //Code Generation
+            std::cout << "\n--- BASIC Code Generation ---" << std::endl;
+            CodeGen codeGen;
+            codeGen.setSymbolTable(&typeChecker.getSymbolTable());
 
+            // 1. Generate intermediate code with PROC/FUNC/CALL
+            std::cout << "Step 1: Generating intermediate code..." << std::endl;
+            codeGen.generate(static_cast<ProgramNode*>(ast_root));
+
+            // *** MOVED: Save HTML with NON-EXECUTABLE Intermediate Code (as per Project Type B spec) ***
+            std::cout << "Saving intermediate code preview to ICG.html..." << std::endl;
+            codeGen.saveToHTML(); 
+            
+            // 2. Perform inlining (Project Type A)
+            // This replaces all CALL/PROC/FUNC with inlined BASIC
+            std::cout << "Step 2: Performing inlining..." << std::endl;
+            codeGen.performInlining();
+
+            // 3. Post-process to add line numbers and fix GOTO/THEN labels
+            std::cout << "Step 3: Post-processing to executable BASIC..." << std::endl;
+            codeGen.startPostProcess();
+            
+            // 4. Save final executable code
+            std::cout << "Step 4: Saving final executable code..." << std::endl;
+            codeGen.saveCode(); // Saves to ICG.txt
+            std::cout << "Executable BASIC code successfully generated in ICG.txt" << std::endl;
 
             delete ast_root; // Clean up the memory for the entire tree
         }

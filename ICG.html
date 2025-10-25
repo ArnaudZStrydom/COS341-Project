@@ -1,90 +1,74 @@
 <!DOCTYPE html>
 <html>
-<head><title>Intermediate Generated Code</title></head>
+<head><title>Generated BASIC Code</title></head>
 <body>
-<h1>Intermediate Generated Code</h1>
+<h1>Generated BASIC Code</h1>
 <pre><code>
-PROC printnum()
-PRINT "Thenumberis"
-PRINT n
-END PROC
-
-PROC donothing()
-STOP
-END PROC
-
-FUNCTION factorial()
-t1 = n
-t2 = 0
-IF t1 = t2 THEN LBL_THEN_1
+a = 20
+PRINT "AssignPrintTest"
+PRINT a
+PRINT "IfElseTest"
+PRINT "Shouldprint50"
+t1 = a
+t2 = 15
+IF t1 > t2 THEN LBL_THEN_1
 GOTO LBL_ELSE_2
 REM LBL_ELSE_2
-t3 = n
-t4 = 1
-t5 = t3 - t4
-temp = t5
-t6 = CALL_factorial(temp)
-res = t6
-t7 = n
-t8 = res
-t9 = t7 * t8
-res = t9
-RETURN res
+b = 60
 GOTO LBL_EXIT_3
 REM LBL_THEN_1
-RETURN 1
+b = 50
 REM LBL_EXIT_3
-END FUNCTION
-
-gcounter = 10
-CALL_printnum(gcounter)
-i = 0
+PRINT b
+PRINT "FuncCallTest"
+PRINT "Shouldprint60"
+t3 = CALL_addten(b)
+c = t3
+PRINT c
+PRINT "ProcCallTest"
+CALL_printval(c)
+PRINT "WhileLoopTest"
 REM LBL_WHILE_4
-t10 = -5
-t11 = i
-t12 = t10
-IF t11 > t12 THEN LBL_NEXT_6
+t4 = a
+t5 = 17
+IF t4 > t5 THEN LBL_WHILE_4_BODY
 GOTO LBL_EXIT_WHILE_5
-REM LBL_NEXT_6
-t13 = i
-t14 = 5
-IF t13 = t14 THEN LBL_EXIT_WHILE_5
-GOTO LBL_WHILE_4_BODY
 REM LBL_WHILE_4_BODY
-t15 = gcounter
-t16 = i
-t17 = t15 + t16
-gcounter = t17
-t18 = i
-t19 = 1
-t20 = t18 + t19
-i = t20
+PRINT a
+t6 = a
+t7 = 1
+t8 = (t6 - t7)
+a = t8
 GOTO LBL_WHILE_4
 REM LBL_EXIT_WHILE_5
-REM LBL_DO_7
-t21 = i
-t22 = 1
-t23 = t21 - t22
-i = t23
-t24 = i
-t25 = 0
-IF t24 = t25 THEN LBL_EXIT_DO_8
-GOTO LBL_DO_7
-REM LBL_EXIT_DO_8
-t26 = gcounter
-t27 = 100
-IF t26 > t27 THEN LBL_THEN_9
-GOTO LBL_ELSE_10
-REM LBL_ELSE_10
-PRINT "gcountnotlarge"
-GOTO LBL_EXIT_11
-REM LBL_THEN_9
-PRINT "gcounterislarge"
-REM LBL_EXIT_11
-t28 = CALL_factorial(5)
-factof5 = t28
-PRINT "Factorialof5is"
-PRINT factof5
+PRINT "DoUntilLoopTest"
+REM LBL_DO_6
+PRINT a
+t9 = a
+t10 = 1
+t11 = (t9 + t10)
+a = t11
+t12 = a
+t13 = 20
+IF t12 = t13 THEN LBL_EXIT_DO_7
+GOTO LBL_DO_6
+REM LBL_EXIT_DO_7
+PRINT "ComplexExprTest"
+PRINT "Shouldprint15"
+t14 = CALL_addten(10)
+temp1 = t14
+t15 = CALL_sub(10,5)
+temp2 = t15
+t16 = temp1
+t17 = temp2
+t18 = (t16 - t17)
+total = t18
+PRINT total
+PRINT "GlobalVarTest"
+PRINT "Shouldprint0"
+gcounter = 0
+PRINT gcounter
+PRINT "FinalHalt"
 STOP
 </code></pre>
 </body>
