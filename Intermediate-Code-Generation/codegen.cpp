@@ -118,7 +118,7 @@ void CodeGen::performInlining() {
 
                     if (i < callArgs.size()) {
                         // Use BASIC-compatible assignment
-                        newCode.push_back(newParamName + " = " + callArgs[i]);
+                        newCode.push_back("LET " + newParamName + " = " + callArgs[i]);
                     }
                 }
 
@@ -202,7 +202,7 @@ void CodeGen::genStatement(StatementNode* stmt, std::vector<std::string>& codeBl
         std::string varName = resolveVariable(assign->var->name, varMap);
         std::string rhs = genExpression(assign->expression, codeBlock, varMap);
         // Use BASIC-compatible assignment (no LET)
-        emit(varName + " = " + rhs, codeBlock);
+        emit("LET " + varName + " = " + rhs, codeBlock);
     }
     else if (auto* procCall = dynamic_cast<ProcCallNode*>(stmt)) {
         std::string params = "";
@@ -272,7 +272,7 @@ void CodeGen::genStatement(StatementNode* stmt, std::vector<std::string>& codeBl
         if (!funcReturnVar.empty()) {
             std::string e = genAtom(returnNode->expression, varMap);
              // Use BASIC-compatible assignment (no LET)
-            emit(funcReturnVar + " = " + e, codeBlock);
+            emit("LET " + funcReturnVar + " = " + e, codeBlock);
         }
     }
 }
@@ -316,9 +316,9 @@ std::string CodeGen::genExpression(ExpressionNode* expr, std::vector<std::string
              // For safety, generate a temporary boolean representation if needed outside condition
             std::string zero = newTemp();
             emit(zero + " = 0", codeBlock);
-            emit(tmp + " = (" + operand + " = " + zero + ")", codeBlock); // tmp = -1 if operand is 0, else 0
+            emit("LET " + tmp + " = (" + operand + " = " + zero + ")", codeBlock); // tmp = -1 if operand is 0, else 0
         }
-        else emit(tmp + " = " + unary->op + " " + operand, codeBlock); // Should not happen?
+        else emit("LET " + tmp + " = " + unary->op + " " + operand, codeBlock); // Should not happen?
 
         return tmp;
     }
@@ -349,15 +349,15 @@ std::string CodeGen::genExpression(ExpressionNode* expr, std::vector<std::string
 
         // always emit temporaries for both operands
         std::string tmpLeft = newTemp();
-        emit(tmpLeft + " = " + left, codeBlock);
+        emit("LET " + tmpLeft + " = " + left, codeBlock);
 
         std::string tmpRight = newTemp();
-        emit(tmpRight + " = " + right, codeBlock);
+        emit("LET " + tmpRight + " = " + right, codeBlock);
 
         // comparisons still get a temporary to hold boolean result
         // BASIC evaluates boolean expressions to -1 (true) or 0 (false)
         std::string tmp = newTemp();
-        emit(tmp + " = (" + tmpLeft + op + tmpRight + ")", codeBlock);
+        emit("LET " + tmp + " = (" + tmpLeft + op + tmpRight + ")", codeBlock);
 
         return tmp;
     }
@@ -408,7 +408,7 @@ void CodeGen::genCondition(ExpressionNode* expr, std::vector<std::string>& codeB
              std::string condResult = genExpression(expr, codeBlock, varMap);
              // BASIC uses -1 for true, 0 for false. Check if result is not 0.
              std::string zero = newTemp();
-             emit(zero + " = 0", codeBlock);
+             emit("LET " + zero + " = 0", codeBlock);
              emit("IF " + condResult + " <> " + zero + " THEN " + labelTrue, codeBlock);
         } else {
              // Handle standard comparisons
@@ -416,10 +416,10 @@ void CodeGen::genCondition(ExpressionNode* expr, std::vector<std::string>& codeB
             std::string right = genExpression(binary->right, codeBlock, varMap);
 
             std::string tmpLeft = newTemp();
-            emit(tmpLeft + " = " + left, codeBlock);
+            emit("LET " + tmpLeft + " = " + left, codeBlock);
 
             std::string tmpRight = newTemp();
-            emit(tmpRight + " = " + right, codeBlock);
+            emit("LET " + tmpRight + " = " + right, codeBlock);
 
             emit("IF " + tmpLeft + op + tmpRight + " THEN " + labelTrue, codeBlock);
         }
@@ -440,7 +440,7 @@ void CodeGen::genCondition(ExpressionNode* expr, std::vector<std::string>& codeB
     // Check if the value is non-zero (true in BASIC)
     std::string cond = genExpression(expr, codeBlock, varMap);
     std::string zero = newTemp();
-    emit(zero + " = 0", codeBlock);
+    emit("LET " + zero + " = 0", codeBlock);
     emit("IF " + cond + " <> " + zero + " THEN " + labelTrue, codeBlock);
     emit("GOTO " + labelFalse, codeBlock);
 }
@@ -465,7 +465,9 @@ std::string CodeGen::resolveVariable(const std::string& name, VarRenameMap& varM
     // Assume it's a global or main local if not found in map and not a temp
     // BASIC is often case-insensitive, convert to upper for safety? Or assume case-sensitive?
     // Let's assume case-sensitive for now as per SPL spec.
-    return name;
+    std::string newName = newInlinedVar(name);
+    varMap[name] = newName;
+    return newName;
 }
 
 
@@ -618,4 +620,3 @@ void CodeGen::changeLabelToLineNumber(std::string &line){
         }
     }
 }
-

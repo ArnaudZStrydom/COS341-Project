@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 
         if (ast_root) {
             std::cout<<"Tokens accepted"<<std::endl;
-            ast_root->print();
+            //ast_root->print();
 
             ast_root->checkNames();
             std::cout<<"Variable Naming and Function Naming accepted"<<std::endl;
