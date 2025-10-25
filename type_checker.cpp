@@ -788,13 +788,13 @@ const std::vector<std::string>& TypeChecker::getErrorMessages() const {
 
 void TypeChecker::printErrors() const {
     if (hasErrors) {
-        std::cout << "\n=== Type Checker Errors ===" << std::endl;
+        //std::cout << "\n=== Type Checker Errors ===" << std::endl;
         for (const auto& error : errorMessages) {
-            std::cout << "Error: " << error << std::endl;
+            std::cout << "Type error: " << error << std::endl;
         }
-        std::cout << "===========================" << std::endl;
+        //std::cout << "===========================" << std::endl;
     } else {
-        std::cout << "\n=== Type Checker: No errors found ===" << std::endl;
+        //std::cout << "\n=== Type Checker: No errors found ===" << std::endl;
     }
 }
 

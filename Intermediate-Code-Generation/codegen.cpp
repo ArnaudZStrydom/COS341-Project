@@ -24,14 +24,15 @@ void CodeGen::generate(ProgramNode* program) {
 }
 
 void CodeGen::saveCode() const {
-    std::ofstream outputFile("ICG.txt");
+    std::ofstream outputFile("BASIC_EXECUTABLE.txt");
     if (!outputFile.is_open()) {
-        std::cerr << "Could not open ICG.txt" << std::endl;
+        std::cerr << "Could not open BASIC_EXECUTABLE.txt" << std::endl;
         return;
     }
     for (const auto& line : code) {
         outputFile << line << std::endl;
     }
+    std::cout << "Executable BASIC code successfully generated in BASIC_EXECUTABLE.txt" << std::endl;
     outputFile.close();
 }
 

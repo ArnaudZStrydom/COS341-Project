@@ -22,7 +22,7 @@ TEST_OBJ = $(TEST_SOURCES:.cpp=.o)
 
 # Standard build (dynamic, for local testing)
 build: $(OBJ)
-	$(CXX) $(CXXFLAGS) -o spl_compiler $(OBJ) $(LDFLAGS)
+	$(CXX) $(CXXFLAGS) -o spl_compiler $(OBJ) $(LDFLAGS_STATIC)
 
 # SUBMISSION TARGET (static, for final submission)
 submission: $(OBJ)
@@ -32,8 +32,9 @@ submission: $(OBJ)
 	@zip submission.zip spl_compiler user_manual.pdf
 	@echo "--- Done! Upload submission.zip ---"
 
-run: build
-	./spl_compiler tests/valid/valid_program.txt
+run:
+	./spl_compiler spl_test.txt
+# ./spl_compiler tests/valid/valid_program.txt
 
 test: clean $(TEST_OBJ)
 	$(CXX) $(CXXFLAGS) -o test $(TEST_OBJ) $(LDFLAGS)
@@ -53,6 +54,6 @@ Intermediate-Code-Generation/%.o: Intermediate-Code-Generation/%.cpp
 
 # ------------------- Clean -------------------
 clean:
-	rm -f $(OBJ) $(TEST_OBJ) spl_compiler test ICG.txt ICG.html submission.zip
+	rm -f $(OBJ) $(TEST_OBJ) spl_compiler test BASIC_EXECUTABLE.txt ICG.html submission.zip
 
 # ------------------- End of Makefile -------------------

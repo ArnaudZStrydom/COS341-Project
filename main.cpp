@@ -32,61 +32,53 @@ int main(int argc, char* argv[]) {
     try {
         source_code = readFileToString(argv[1]);
         initialize_lexer(source_code);
-        yyparse();
+        
+        int parse_res = yyparse();
+        if(parse_res ==  0){
+            std::cout<<"Syntax accepted"<<std::endl;
+        }else{
+            return 1;
+        }
 
-        // Parse successful, now perform type checking
         if (ast_root) {
-            std::cout << "\n--- Abstract Syntax Tree ---" << std::endl;
+            std::cout<<"Tokens accepted"<<std::endl;
             ast_root->print();
+
+            ast_root->checkNames();
+            std::cout<<"Variable Naming and Function Naming accepted"<<std::endl;
             
-            // Perform type checking
-            std::cout << "\n--- Type Checking ---" << std::endl;
             TypeChecker typeChecker;
             bool typeCheckPassed = typeChecker.typeCheck(static_cast<ProgramNode*>(ast_root));
             
-            // Print type checker results
             typeChecker.printErrors();
             
             if (typeCheckPassed) {
-                typeChecker.printSymbolTable();
-                std::cout << "Type checking passed successfully!" << std::endl;
+                //typeChecker.printSymbolTable();
+                std::cout << "Types accepted" << std::endl;
             } else {
-                std::cout << "Type checking failed!" << std::endl;
+                std::cout << "Type error:" << std::endl;
                 return 1; // Exit with error code
             }
 
             //Code Generation
-            std::cout << "\n--- BASIC Code Generation ---" << std::endl;
             CodeGen codeGen;
             codeGen.setSymbolTable(&typeChecker.getSymbolTable());
 
-            // 1. Generate intermediate code with PROC/FUNC/CALL
-            std::cout << "Step 1: Generating intermediate code..." << std::endl;
             codeGen.generate(static_cast<ProgramNode*>(ast_root));
 
-            // *** MOVED: Save HTML with NON-EXECUTABLE Intermediate Code (as per Project Type B spec) ***
-            std::cout << "Saving intermediate code preview to ICG.html..." << std::endl;
             codeGen.saveToHTML(); 
             
-            // 2. Perform inlining (Project Type A)
-            // This replaces all CALL/PROC/FUNC with inlined BASIC
-            std::cout << "Step 2: Performing inlining..." << std::endl;
             codeGen.performInlining();
 
-            // 3. Post-process to add line numbers and fix GOTO/THEN labels
-            std::cout << "Step 3: Post-processing to executable BASIC..." << std::endl;
             codeGen.startPostProcess();
             
-            // 4. Save final executable code
-            std::cout << "Step 4: Saving final executable code..." << std::endl;
-            codeGen.saveCode(); // Saves to ICG.txt
-            std::cout << "Executable BASIC code successfully generated in ICG.txt" << std::endl;
+            codeGen.saveCode(); 
 
-            delete ast_root; // Clean up the memory for the entire tree
+            delete ast_root; 
         }
 
     } catch (const std::runtime_error& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+        std::cerr << "Lexical error: " << e.what() << std::endl;
         return 1;
     }
     return 0;

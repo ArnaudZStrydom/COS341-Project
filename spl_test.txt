@@ -18,9 +18,9 @@ func {
     }
 
     sub(a b) {
-        local { result }
-        result = (a minus b);
-        return result
+        local { 2result }
+        2result = (a minus b);
+        return 2result
     }
 }
 

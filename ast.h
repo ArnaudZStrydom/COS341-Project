@@ -6,6 +6,52 @@
 #include <vector>
 #include <memory>
 
+#include <unordered_set>
+#include <regex>
+
+static const std::unordered_set<std::string> RESERVED_KEYWORDS = {
+    "glob","proc","func","main","return","local","var","halt","print",
+    "while","do","until","if","else",
+    "neg","not","eq",">","or","and","plus","minus","mult","div"
+};
+
+static const std::regex IDENT_REGEX("^[a-z][a-z0-9]*$");
+static const std::regex NUMBER_REGEX("^(0|[1-9][0-9]*)$");
+static const std::regex STRING_REGEX("^[A-Za-z0-9]{0,15}$");
+
+inline bool checkIdentifier(const std::string& name) {
+    if (RESERVED_KEYWORDS.count(name)) {
+        std::cerr << "Invalid identifier: '" << name << "' is a reserved keyword." << std::endl;
+        return false;
+    }
+    if (!std::regex_match(name, IDENT_REGEX)) {
+        std::cerr << "Invalid identifier: '" << name << "'. Must match [a-z][a-z0-9]*" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+inline bool checkNumber(const std::string& value) {
+    if (!std::regex_match(value, NUMBER_REGEX)) {
+        std::cerr << "Invalid number constant: '" << value << "'" << std::endl;
+        return false;
+    }
+    return true;
+}
+
+inline bool checkString(const std::string& value) {
+    if (value.length() > 15) {
+        std::cerr << "String literal exceeds 15 characters: '" << value << "'" << std::endl;
+        return false;
+    }
+    if (!std::regex_match(value, STRING_REGEX)) {
+        std::cerr << "Invalid string literal: '" << value << "'. Only letters/digits allowed." << std::endl;
+        return false;
+    }
+    return true;
+}
+
+
 // A helper function for indentation when printing the tree
 inline void print_indent(int indent) {
     std::cout << std::string(indent, ' ');
@@ -19,6 +65,7 @@ class AstNode {
 public:
     virtual ~AstNode() = default;
     virtual void print(int indent = 0) const = 0;
+    virtual void checkNames() const = 0;
 };
 
 class StatementNode : public AstNode {};
@@ -38,6 +85,13 @@ public:
             element->print(indent);
         }
     }
+
+    void checkNames() const override{
+        for (const auto* element : elements) {
+            element->checkNames();
+        }
+    }
+
 };
 
 
@@ -53,6 +107,11 @@ public:
         print_indent(indent);
         std::cout << "Var(" << name << ")" << std::endl;
     }
+
+    void checkNames() const override {
+        checkIdentifier(name);
+    }
+
 };
 
 class NumberNode : public ExpressionNode {
@@ -63,6 +122,12 @@ public:
         print_indent(indent);
         std::cout << "Number(" << value << ")" << std::endl;
     }
+
+    void checkNames() const override {
+        checkNumber(value);
+    }
+
+
 };
 
 class StringNode : public ExpressionNode {
@@ -72,6 +137,10 @@ public:
      void print(int indent = 0) const override {
         print_indent(indent);
         std::cout << "String(\"" << value << "\")" << std::endl;
+    }
+
+    void checkNames() const override {
+        checkString(value);
     }
 };
 
@@ -85,6 +154,10 @@ public:
         print_indent(indent);
         std::cout << "UnaryOp(" << op << ")" << std::endl;
         operand->print(indent + 2);
+    }
+
+    void checkNames() const override {
+        if(operand) operand->checkNames();
     }
 };
 
@@ -101,6 +174,11 @@ public:
         left->print(indent + 2);
         right->print(indent + 2);
     }
+
+    void checkNames() const override {
+        if(left) left->checkNames();
+        if(right) right->checkNames();
+    }
 };
 
 class FuncCallNode : public ExpressionNode {
@@ -113,6 +191,11 @@ public:
         print_indent(indent);
         std::cout << "FuncCall(" << name << ")" << std::endl;
         if(args) args->print(indent + 2);
+    }
+
+    void checkNames() const override {
+        checkIdentifier(name);
+        if (args) args->checkNames();
     }
 };
 
@@ -127,6 +210,9 @@ public:
         print_indent(indent);
         std::cout << "Halt" << std::endl;
     }
+
+    void checkNames() const override {
+    }
 };
 
 class PrintNode : public StatementNode {
@@ -138,6 +224,9 @@ public:
         print_indent(indent);
         std::cout << "Print" << std::endl;
         expression->print(indent + 2);
+    }
+    void checkNames() const override {
+        if(expression) expression->checkNames();
     }
 };
 
@@ -151,6 +240,11 @@ public:
         print_indent(indent);
         std::cout << "ProcCall(" << name << ")" << std::endl;
         if(args) args->print(indent + 2);
+    }
+
+    void checkNames() const override {
+        checkIdentifier(name);
+        if (args) args->checkNames();
     }
 };
 
@@ -166,6 +260,12 @@ public:
         var->print(indent + 2);
         expression->print(indent + 2);
     }
+
+    void checkNames() const override {
+        if (var) var->checkNames();
+        if (expression) expression->checkNames();
+    }
+
 };
 
 class IfNode : public StatementNode {
@@ -181,6 +281,11 @@ public:
         print_indent(indent);
         std::cout << "Then" << std::endl;
         then_branch->print(indent + 2);
+    }
+
+    void checkNames() const override {
+        if(condition) condition->checkNames();
+        if(then_branch) then_branch->checkNames();
     }
 };
 
@@ -203,6 +308,12 @@ public:
         std::cout << "Else" << std::endl;
         else_branch->print(indent + 2);
     }
+
+    void checkNames() const override {
+        if(condition) condition->checkNames();
+        if(then_branch) then_branch->checkNames();
+        if(else_branch) else_branch->checkNames();
+    }
 };
 
 class WhileNode : public StatementNode {
@@ -218,6 +329,11 @@ public:
         print_indent(indent);
         std::cout << "Body" << std::endl;
         body->print(indent + 2);
+    }
+
+    void checkNames() const override {
+        if(condition) condition->checkNames();
+        if(body) body->checkNames();
     }
 };
 
@@ -235,6 +351,11 @@ public:
         body->print(indent + 2);
         condition->print(indent + 2);
     }
+    
+    void checkNames() const override {
+        if(body) body->checkNames();
+        if(condition) condition->checkNames();
+    }
 };
 
 class BodyNode : public AstNode {
@@ -249,6 +370,12 @@ public:
         locals->print(indent + 2);
         statements->print(indent + 2);
     }
+
+    void checkNames() const override {
+        if (locals) locals->checkNames();
+        if (statements) statements->checkNames();
+    }
+
 };
 
 class ProcDefNode : public AstNode {
@@ -263,6 +390,12 @@ public:
         std::cout << "ProcDef(" << name << ")" << std::endl;
         params->print(indent + 2);
         body->print(indent + 2);
+    }
+
+    void checkNames() const override {
+        checkIdentifier(name);
+        if (params) params->checkNames();
+        if (body) body->checkNames();
     }
 };
 
@@ -288,6 +421,12 @@ public:
         params->print(indent + 2);
         body->print(indent + 2);
     }
+
+    void checkNames() const override {
+        checkIdentifier(name);
+        if (params) params->checkNames();
+        if (body) body->checkNames();
+    }
 };
 
 class MainProgNode : public AstNode {
@@ -301,6 +440,11 @@ public:
         std::cout << "Main" << std::endl;
         locals->print(indent + 2);
         statements->print(indent + 2);
+    }
+
+    void checkNames() const override {
+        if (locals) locals->checkNames();
+        if (statements) statements->checkNames();
     }
 };
 
@@ -321,6 +465,13 @@ public:
         funcs->print(indent + 2);
         main->print(indent + 2);
     }
+
+    void checkNames() const override {
+        if (globals) globals->checkNames();
+        if (procs) procs->checkNames();
+        if (funcs) funcs->checkNames();
+        if (main) main->checkNames();
+    }
 };
 
 class ReturnNode : public StatementNode {
@@ -333,6 +484,12 @@ public:
         std::cout << "Return" << std::endl;
         expression->print(indent + 2);
     }
+
+    void checkNames() const override {
+        if(expression) expression->checkNames();
+    }
 };
+
+
 
 #endif // AST_H

@@ -106,7 +106,10 @@ Token Lexer::getNextToken() {
         case ';': return {SEMICOLON, ";"};
         case '=': return {ASSIGN, "="};
         case '>': return {GT, ">"};
-        default:  throw std::runtime_error("Unrecognized character: " + std::string(1, current_char) + ". Line: " + std::to_string(line_number_));
+        default:  {
+            std::cerr<<"Unrecognized character: " << std::string(1, current_char) << ". Line: " << std::to_string(line_number_) <<std::endl;
+            throw std::runtime_error("Unrecognized character: " + std::string(1, current_char) + ". Line: " + std::to_string(line_number_));
+        }
     }
 }
 
@@ -152,6 +155,7 @@ Token Lexer::number() {
     if (first_char == '0') {
         advance();
         if (isdigit(peek())) {
+            std::cerr<<"Invalid number format: leading zero on multi-digit number. Line: " << std::to_string(line_number_) <<std::endl;
             throw std::runtime_error("Invalid number format: leading zero on multi-digit number. Line: " + std::to_string(line_number_));
         }
         return {NUMBER, "0"};
@@ -172,10 +176,12 @@ Token Lexer::stringLiteral() {
     }
     std::string value = source_.substr(start_pos, current_pos_ - start_pos);
     if (peek() != '"') {
+        std::cerr<< "Unterminated or invalid string literal. Only letters and digits are allowed. Line: " + std::to_string(line_number_) <<std::endl;
         throw std::runtime_error("Unterminated or invalid string literal. Only letters and digits are allowed. Line: " + std::to_string(line_number_));
     }
     advance(); 
     if (value.length() > 15) {
+        std::cerr<< "String literal exceeds maximum length of 15 characters. Line: " + std::to_string(line_number_) <<std::endl;
         throw std::runtime_error("String literal exceeds maximum length of 15 characters. Line: " + std::to_string(line_number_));
     }
     return {STRING, value};
