@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head><title>Generated BASIC Code</title></head>
+<body>
+<h1>Generated BASIC Code</h1>
+<pre><code>
+LET A1 = 20
+PRINT "AssignPrintTest"
+PRINT A1
+PRINT "IfElseTest"
+PRINT "Shouldprint50"
+LET t1 = A1
+LET t2 = 15
+IF t1 > t2 THEN LBL_THEN_1
+GOTO LBL_ELSE_2
+REM LBL_ELSE_2
+LET B2 = 60
+GOTO LBL_EXIT_3
+REM LBL_THEN_1
+LET B2 = 50
+REM LBL_EXIT_3
+PRINT B2
+PRINT "FuncCallTest"
+PRINT "Shouldprint60"
+t3 = CALL_addten(B2)
+LET C3 = t3
+PRINT C3
+PRINT "ProcCallTest"
+CALL_printval(C3)
+PRINT "WhileLoopTest"
+REM LBL_WHILE_4
+LET t4 = A1
+LET t5 = 17
+IF t4 > t5 THEN LBL_WHILE_4_BODY
+GOTO LBL_EXIT_WHILE_5
+REM LBL_WHILE_4_BODY
+PRINT A1
+LET t6 = A1
+LET t7 = 1
+LET t8 = (t6 - t7)
+LET A1 = t8
+GOTO LBL_WHILE_4
+REM LBL_EXIT_WHILE_5
+PRINT "DoUntilLoopTest"
+REM LBL_DO_6
+PRINT A1
+LET t9 = A1
+LET t10 = 1
+LET t11 = (t9 + t10)
+LET A1 = t11
+LET t12 = A1
+LET t13 = 20
+IF t12 = t13 THEN LBL_EXIT_DO_7
+GOTO LBL_DO_6
+REM LBL_EXIT_DO_7
+PRINT "ComplexExprTest"
+PRINT "Shouldprint15"
+t14 = CALL_addten(10)
+LET T4 = t14
+t15 = CALL_sub(10,5)
+LET T5 = t15
+LET t16 = T4
+LET t17 = T5
+LET t18 = (t16 - t17)
+LET T6 = t18
+PRINT T6
+PRINT "GlobalVarTest"
+PRINT "Shouldprint0"
+LET G7 = 0
+PRINT G7
+PRINT "FinalHalt"
+STOP
+</code></pre>
+</body>
+</html>
